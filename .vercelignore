@@ -1,0 +1,33 @@
+# Files that stay on the machine and never reach the deployment.
+#
+# NOTE: when this file exists, the Vercel CLI uses it INSTEAD of .gitignore,
+# so the usual build-output and dependency entries have to be repeated here.
+
+node_modules
+.next
+out
+build
+.git
+.DS_Store
+.env
+.env.local
+.env*.local
+*.pem
+
+# ---------------------------------------------------------------------------
+# public/media/showreel.mov — the 211MB showreel master (1920x1080, 2:48,
+# uncompressed PCM audio). It is the source the web assets were cut from and
+# the file to upload to YouTube; it is not something to serve over the web.
+#
+# The site uses two derivatives instead, both committed and both deployed:
+#   showreel-preview.mp4  1.2MB  silent 14s loop behind the PLAY REEL button
+#   showreel-poster.jpg    42KB  first frame, shown before the loop decodes
+# and the full film streams from YouTube.
+#
+# Delete this line if the master ever genuinely needs to be downloadable.
+# ---------------------------------------------------------------------------
+public/media/showreel.mov
+
+# Original, full-size service photos. The site serves the web-sized copies
+# in public/media/services instead.
+public/media/what we create

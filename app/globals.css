@@ -1,0 +1,916 @@
+/* ==========================================================================
+   PARANTI MEDIA — GLOBAL STYLES
+   Brand: CREAM #F3EAD3 · INK #16130F · ORANGE #E1541E
+   Type:  Bebas Neue (display) · Inter (body/UI) · IBM Plex Mono (labels)
+   ========================================================================== */
+
+/* --------------------------------------------------- 1. TOKENS ----------- */
+:root {
+  --cream: #f3ead3;
+  --ink: #16130f;
+  --orange: #e1541e;
+
+  /* Derived tones — all sampled from the three brand colours only. */
+  --cream-deep: #e7dcc2;
+  --cream-line: rgba(22, 19, 15, 0.14);
+  --ink-line: rgba(243, 234, 211, 0.16);
+  --ink-soft: rgba(22, 19, 15, 0.55);
+  --cream-soft: rgba(243, 234, 211, 0.6);
+  --orange-soft: rgba(225, 84, 30, 0.12);
+
+  --gutter: clamp(20px, 5vw, 88px);
+  --rail: clamp(34px, 4vw, 62px);
+  --maxw: 1680px;
+  --section-y: clamp(90px, 11vw, 190px);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --nav-h: 86px;
+}
+
+@media (max-width: 860px) {
+  :root {
+    --nav-h: 68px;
+    --rail: 30px;
+  }
+}
+
+/* --------------------------------------------------- 2. RESET ------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: auto; /* Lenis handles smooth scrolling */
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+::selection {
+  background: var(--orange);
+  color: var(--cream);
+}
+
+/* Visible, on-brand focus ring for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10000;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 14px 22px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+.skip-link:focus {
+  left: 12px;
+  top: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------- 3. TYPE ------------- */
+.display,
+h1,
+h2,
+h3 {
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-weight: 400;
+  line-height: 0.86;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(10px, 0.72vw, 12px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(10px, 0.72vw, 12px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.62;
+}
+.label::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--orange);
+  flex: none;
+}
+.on-ink .label {
+  color: var(--cream);
+}
+
+.h-section {
+  font-size: clamp(44px, 8.2vw, 148px);
+}
+
+.h-lg {
+  font-size: clamp(34px, 5vw, 88px);
+}
+
+.lead {
+  font-size: clamp(16px, 1.25vw, 21px);
+  line-height: 1.55;
+  max-width: 62ch;
+  color: var(--ink);
+  opacity: 0.78;
+}
+
+.on-ink .lead {
+  color: var(--cream);
+  opacity: 0.72;
+}
+
+.accent {
+  color: var(--orange);
+}
+
+/* --------------------------------------------------- 4. LAYOUT ----------- */
+.section {
+  position: relative;
+  padding: var(--section-y) var(--gutter) var(--section-y)
+    calc(var(--gutter) + var(--rail));
+}
+
+.inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  width: 100%;
+  /* Content always rides above a section's own atmosphere layer. Every
+     ::before the cinematic system paints sits at z-index 0 inside the
+     section; this is what guarantees the copy is never behind any of it. */
+  position: relative;
+  z-index: 1;
+}
+
+.on-ink {
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.rule {
+  height: 1px;
+  width: 100%;
+  background: var(--cream-line);
+  border: 0;
+}
+.on-ink .rule {
+  background: var(--ink-line);
+}
+
+/* --------------------------------------------------- 5. GRAIN ------------ */
+.grain {
+  position: fixed;
+  /* -10% leaves room for the 2% steps of grainShift without an edge showing.
+     It was -50%: a layer four times the screen, blended over everything. */
+  inset: -10%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.34'/%3E%3C/svg%3E");
+  will-change: transform;
+  animation: grainShift 6s steps(6) infinite;
+}
+
+/* Phones and touch screens: no grain. A full-screen multiply blend over the
+   whole page is one of the most expensive things a phone can be asked to
+   composite on every scrolled frame, and at phone pixel density the texture
+   is barely visible anyway. */
+@media (max-width: 768px), (hover: none) {
+  .grain {
+    display: none;
+  }
+}
+
+/* Sections that are off screen (PauseOffscreen.jsx) pause their ambient CSS
+   animations; they resume where they left off. Transitions are unaffected. */
+[data-offscreen="true"],
+[data-offscreen="true"]::before,
+[data-offscreen="true"]::after,
+[data-offscreen="true"] *,
+[data-offscreen="true"] *::before,
+[data-offscreen="true"] *::after {
+  animation-play-state: paused !important;
+}
+
+@keyframes grainShift {
+  0% { transform: translate3d(0, 0, 0); }
+  16% { transform: translate3d(-2%, 1%, 0); }
+  33% { transform: translate3d(1%, -2%, 0); }
+  50% { transform: translate3d(-1%, 2%, 0); }
+  66% { transform: translate3d(2%, 1%, 0); }
+  83% { transform: translate3d(-2%, -1%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* --------------------------------------------------- 6. BUTTONS ---------- */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 30px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 0.4s var(--ease-out), border-color 0.4s var(--ease-out);
+  will-change: transform;
+}
+
+.btn span {
+  position: relative;
+  z-index: 1;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--orange);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.45s var(--ease-out);
+  z-index: 0;
+}
+
+.btn:hover {
+  color: var(--cream);
+  border-color: var(--orange);
+}
+.btn:hover::before {
+  transform: scaleY(1);
+}
+
+.btn .arrow {
+  transition: transform 0.45s var(--ease-out);
+}
+.btn:hover .arrow {
+  transform: translateX(5px);
+}
+
+.btn--solid {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--cream);
+}
+.btn--solid::before {
+  background: var(--ink);
+}
+.btn--solid:hover {
+  border-color: var(--ink);
+  color: var(--cream);
+}
+
+.on-ink .btn {
+  border-color: var(--cream);
+  color: var(--cream);
+}
+.on-ink .btn:hover {
+  color: var(--cream);
+  border-color: var(--orange);
+}
+
+/* Underline link */
+.link-u {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 2px;
+}
+.link-u::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.5s var(--ease-out);
+}
+.link-u:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* --------------------------------------------------- 7. LOGO PLATE ------- */
+/*  The supplied parantii.png has a baked-in warm-cream background (#FEF1D7).
+    `mix-blend-mode: darken` over a brand-cream plate makes that background
+    resolve to exactly #F3EAD3 while leaving the ink figure and the orange
+    "A"s untouched. The image file itself is never modified, recoloured or
+    redrawn — this is purely a compositing trick.                             */
+.logo-plate {
+  display: block;
+  line-height: 0;
+}
+
+.logo-plate img {
+  /* Blends against whatever cream sits behind it — no isolation here, that
+     would cut the image off from the backdrop it needs to blend with. */
+  mix-blend-mode: darken;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Ink backgrounds: give it its own cream plate to blend against. */
+.logo-plate--tile {
+  background: var(--cream);
+  isolation: isolate;
+}
+
+/* --------------------------------------------------- 8. MEDIA ------------ */
+.media {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  isolation: isolate;
+  aspect-ratio: var(--ratio, 16 / 9);
+}
+
+.media img,
+.media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1.2s var(--ease-out);
+  will-change: transform;
+}
+
+/* The frame's ink ground shows through until the first frame has decoded, so
+   the video resolves out of the dark rather than snapping in. When a poster is
+   supplied it covers this moment instead. */
+.media__video {
+  opacity: 0;
+  transition: opacity 0.6s var(--ease-out), transform 1.2s var(--ease-out);
+}
+.media__video[data-ready="true"] {
+  opacity: 1;
+}
+
+.media--zoom:hover img,
+.media--zoom:hover video {
+  transform: scale(1.06);
+}
+
+/* Clearly-labelled placeholder for media that has not been supplied yet. */
+.ph {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  background: var(--ink);
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(243, 234, 211, 0.045) 0 2px,
+      transparent 2px 9px
+    );
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.ph::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 30% 20%,
+    rgba(225, 84, 30, 0.16),
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+/* Reads like a slate in the corner of the frame, so it never collides with
+   centred UI such as the showreel play button. */
+.ph__inner {
+  position: relative;
+  z-index: 2;
+  text-align: left;
+  padding: clamp(16px, 2vw, 30px);
+  color: var(--cream);
+  max-width: 100%;
+}
+
+.ph__label {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(10px, 0.85vw, 12px);
+  line-height: 1.5;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.ph__hint {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  margin-top: 10px;
+  color: var(--orange);
+  opacity: 0.9;
+}
+
+.ph__brackets {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(243, 234, 211, 0.18);
+  clip-path: polygon(
+    0 0, 26px 0, 26px 1px, 1px 1px, 1px 26px, 0 26px,
+    0 100%, 26px 100%, 26px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 26px), 0 calc(100% - 26px),
+    100% 100%, calc(100% - 26px) 100%, calc(100% - 26px) calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) calc(100% - 26px), 100% calc(100% - 26px),
+    100% 0, calc(100% - 26px) 0, calc(100% - 26px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 26px, 100% 26px
+  );
+  pointer-events: none;
+}
+
+/* --------------------------------------------------- 9. REVEALS ---------- */
+/* Elements start hidden only when JS + motion are available; the .is-in class
+   (or a no-js/reduced-motion fallback) makes everything visible.            */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+  will-change: transform, opacity;
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.line-mask {
+  display: block;
+  overflow: hidden;
+}
+.line-mask > span {
+  display: block;
+  transform: translate3d(0, 105%, 0);
+  will-change: transform;
+}
+
+/* A line-mask that also carries .reveal is driven by the IntersectionObserver:
+   the wrapper itself must stay put and only the inner line slides up. Masks
+   without .reveal (the hero) are driven by GSAP and get no CSS transition,
+   so the two systems never fight over the same transform. */
+.line-mask.reveal {
+  opacity: 1;
+  transform: none;
+}
+.line-mask.reveal > span {
+  transition: transform 1s var(--ease-out);
+}
+.line-mask.reveal.is-in > span {
+  transform: translate3d(0, 0, 0);
+}
+
+/* --------------------------------------------------- 10. MARQUEE --------- */
+.marquee {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee__track {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--mq-gap, 64px);
+  padding-right: var(--mq-gap, 64px);
+  min-width: max-content;
+  animation: marquee var(--mq-speed, 42s) linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-100%, 0, 0); }
+}
+
+/* --------------------------------------------------- 11. CURSOR ---------- */
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9998;
+  pointer-events: none;
+  mix-blend-mode: normal;
+  will-change: transform;
+}
+
+.cursor__dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 0.35s var(--ease-out), background-color 0.3s;
+}
+
+.cursor__ring {
+  position: absolute;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: var(--cream);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s var(--ease-out), opacity 0.35s;
+  opacity: 0;
+}
+
+.cursor.is-active .cursor__dot {
+  transform: translate(-50%, -50%) scale(0);
+}
+.cursor.is-active .cursor__ring {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+/* ---- the autofocus point (hero only) ------------------------------------
+   Inside the hero the dot picks up four corner brackets, the way an AF point
+   sits on a viewfinder. It is 26px — deliberately barely larger than the 9px
+   dot it surrounds, because the brief for this is "small camera focus point",
+   not a custom cursor.
+
+   Built as eight 1px gradient slivers on a single pseudo element rather than
+   a bordered box: a full square outline reads as a UI selection marquee,
+   whereas open corners read as a focus reticle. No extra DOM, and nothing
+   here animates position — the dot is already doing that.
+
+   It gives way to the orange disc over anything interactive (:not(.is-active)),
+   so it never competes with REC / FOCUS / ROLL.                             */
+.cursor[data-zone="hero"]:not(.is-active) .cursor__dot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  --afb: linear-gradient(var(--orange), var(--orange));
+  background: var(--afb) 0 0 / 7px 1px no-repeat,
+    var(--afb) 0 0 / 1px 7px no-repeat,
+    var(--afb) 100% 0 / 7px 1px no-repeat,
+    var(--afb) 100% 0 / 1px 7px no-repeat,
+    var(--afb) 0 100% / 7px 1px no-repeat,
+    var(--afb) 0 100% / 1px 7px no-repeat,
+    var(--afb) 100% 100% / 7px 1px no-repeat,
+    var(--afb) 100% 100% / 1px 7px no-repeat;
+  opacity: 0.5;
+  animation: afHunt 3.6s var(--ease-inout) infinite;
+}
+
+/* A focus that never quite settles — a couple of percent, on a long period.
+   Anything more would be a pulsing widget rather than a lens hunting. */
+@keyframes afHunt {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.72; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor[data-zone="hero"]:not(.is-active) .cursor__dot::after {
+    animation: none;
+  }
+}
+
+/* ---- the camera tells --------------------------------------------------
+   REC gets a recording light, ROLL gets a direction. FOCUS gets neither —
+   a focus pull is a state, not an instruction. Both are drawn as pseudo
+   elements off the wrapper's data-mark so the label text itself stays clean
+   and readable at 11px.                                                   */
+.cursor__ring span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cursor[data-mark="rec"] .cursor__ring span::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cream);
+  animation: recPulse 2.1s var(--ease-inout) infinite;
+}
+
+.cursor[data-mark="arrow"] .cursor__ring span::after {
+  content: "→";
+  font-size: 12px;
+  line-height: 1;
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Touch / coarse pointers never see the custom cursor. */
+@media (hover: none), (pointer: coarse), (max-width: 1024px) {
+  .cursor {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------- 12. INTRO ----------- */
+/*  Signature animation A — the monopod plant. Full-bleed cream stage that
+    wipes upward into the hero.                                              */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  background: var(--cream);
+  display: grid;
+  place-items: center;
+  will-change: transform;
+  cursor: pointer;
+}
+
+.intro__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 3vh, 36px);
+  will-change: transform, opacity;
+}
+
+.intro__figure {
+  height: min(48vh, 400px);
+  width: auto;
+  color: var(--ink);
+  overflow: visible;
+}
+
+.intro__tag {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(10px, 1.5vw, 13px);
+  letter-spacing: 0.3em;
+  color: var(--ink);
+  text-align: center;
+}
+
+.intro__skip {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.35;
+  color: var(--ink);
+}
+
+/* --------------------------------------------------- 13. SCROLL RAIL ----- */
+/*  Signature animation B — the monopod as the scroll-progress indicator.
+    Driven by a single custom property so only transforms ever change.       */
+.rail {
+  --p: 0;
+  --pole-x: 62%;
+  --cam-top: 96px;
+  --foot: 34px;
+  --fig-h: 92px;
+  --travel: calc(100dvh - var(--cam-top) - 148px);
+
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--rail);
+  height: 100dvh;
+  z-index: 45;
+  pointer-events: none;
+  color: var(--ink);
+  transition: color 0.45s var(--ease-out);
+}
+
+.rail[data-theme="ink"] {
+  color: var(--cream);
+}
+
+.rail__track {
+  position: absolute;
+  left: var(--pole-x);
+  top: 90px;
+  bottom: var(--foot);
+  width: 2px;
+  margin-left: -1px;
+  overflow: hidden;
+  /* faint unfilled pole; the orange fill inside stays at full strength */
+  background: color-mix(in srgb, currentColor 24%, transparent);
+  transition: background-color 0.45s var(--ease-out);
+}
+
+/* Orange fill trailing the camera up the pole. Pure transform: the bar is
+   full height and is simply slid down out of the clipped track. */
+.rail__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--orange);
+  transform: translate3d(0, calc((1 - var(--p)) * var(--travel)), 0);
+  will-change: transform;
+}
+
+.rail__cam {
+  position: absolute;
+  left: var(--pole-x);
+  top: var(--cam-top);
+  width: 30px;
+  transform: translate3d(-50%, calc((1 - var(--p)) * var(--travel)), 0)
+    translateY(-50%);
+  will-change: transform;
+  color: var(--orange);
+}
+
+.rail__figure {
+  position: absolute;
+  bottom: var(--foot);
+  right: calc(100% - var(--pole-x));
+  height: var(--fig-h);
+}
+
+.rail__figure svg {
+  height: 100%;
+  width: auto;
+}
+
+.rail__ground {
+  position: absolute;
+  left: var(--pole-x);
+  bottom: var(--foot);
+  width: 38px;
+  height: 2px;
+  margin-left: -19px;
+  background: currentColor;
+  opacity: 0.28;
+}
+
+/* Reduced motion: the camera parks at the top of the pole and the fill
+   becomes a plain, jump-cut progress bar. The figure stays planted at rest. */
+.rail[data-reduced="true"] .rail__cam {
+  transform: translate3d(-50%, 0, 0) translateY(-50%);
+}
+
+/* Phones keep the whole idea — planted figure, travelling camera, orange
+   fill — just scaled down so it costs nothing to run. */
+@media (max-width: 860px) {
+  .rail {
+    --pole-x: 76%;
+    --cam-top: 74px;
+    --foot: 20px;
+    --fig-h: 48px;
+    --travel: calc(100dvh - var(--cam-top) - 96px);
+  }
+  .rail__track {
+    top: 70px;
+  }
+  .rail__cam {
+    width: 20px;
+  }
+  .rail__ground {
+    width: 20px;
+    margin-left: -10px;
+  }
+}
+
+/* --------------------------------------------------- 14. REDUCED MOTION -- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .grain {
+    animation: none;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .line-mask > span {
+    transform: none !important;
+  }
+
+  .marquee__track {
+    animation: none;
+    transform: none;
+  }
+
+  .marquee {
+    overflow-x: auto;
+  }
+}
+
+/* No-JS: never hide content behind an animation that will not run. */
+.no-js .reveal {
+  opacity: 1;
+  transform: none;
+}
+.no-js .line-mask > span {
+  transform: none;
+}

@@ -1,0 +1,651 @@
+/* ==========================================================================
+   BUILD A SHOT
+   --------------------------------------------------------------------------
+   Self-contained, like director.css: delete this file, the component and two
+   lines of wiring and the site is exactly as it was.
+
+   Everything the four controls do is expressed as custom properties on
+   .bas__monitor, set by attribute selectors. The scene layers read those
+   properties and transition between them. No JavaScript runs after a click —
+   the browser composites the move.
+
+   The defaults below are the base shot (NATURAL / 35MM / EYE LEVEL / RAW), so
+   the monitor is a real frame before anything is chosen.
+   ========================================================================== */
+
+.bas__head {
+  max-width: 1100px;
+  margin-bottom: clamp(34px, 4.5vw, 68px);
+}
+
+.bas__head .h-section em {
+  font-style: normal;
+}
+
+.bas__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(28px, 4vw, 68px);
+  align-items: start;
+}
+
+/* The monitor stays with the reader while they work through the four steps —
+   there is no point choosing a lens you cannot see the effect of. */
+.bas__monitorwrap {
+  position: sticky;
+  top: calc(var(--nav-h) + 24px);
+}
+
+/* ==========================================================================
+   THE MONITOR
+   ========================================================================== */
+.bas__monitor {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0a0806;
+  border: 1px solid rgba(243, 234, 211, 0.14);
+
+  /* ---- the camera state, with the base shot as the default ------------- */
+  --ex: 1;        /* exposure            */
+  --con: 1;       /* contrast            */
+  --sat: 1;       /* saturation          */
+  --sun-x: 62%;   /* key light position  */
+  --sun-y: 38%;
+  --sun-r: 46%;   /* source size = softness */
+  --sun-i: 0.5;   /* intensity           */
+  --sh-len: 1;    /* cast shadow length  */
+  --sh-dir: -1;   /* which way it falls  */
+  --sh-soft: 14px;
+  --sh-op: 0.4;
+  --far: 1;       /* focal length: far-plane scale */
+  --subj: 1;      /* focal length: subject scale   */
+  --horizon: 0%;  /* angle: where the horizon sits */
+  --tilt: 1;      /* angle: ground foreshortening  */
+  --lift: 0;      /* grade: how much the blacks lift */
+
+  transition: filter 900ms var(--ease-out);
+  filter: brightness(var(--ex)) contrast(var(--con)) saturate(var(--sat));
+}
+
+/* The camera re-meters for half a second after any change. */
+.bas__monitor[data-adjusting]:not([data-adjusting="none"]) .bas__scene {
+  animation: basMeter 560ms var(--ease-out);
+}
+
+@keyframes basMeter {
+  0% { opacity: 1; }
+  22% { opacity: 0.82; }
+  100% { opacity: 1; }
+}
+
+.bas__scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.bas__scene > *,
+.bas__world > * {
+  position: absolute;
+  display: block;
+}
+
+/* Everything in the place moves as ONE piece when the camera changes height.
+   Each layer used to translate by --horizon on its own, but a percentage in
+   translate resolves against that layer's own height — so one 13% move
+   shifted the 120%-tall sky, the 34%-tall ridge and the 42%-tall ground by
+   three different distances, and at LOW the mountains lifted clear of the
+   ground with a band of sky beneath them. One wrapper, one translate, and
+   the layers keep their relationship at every angle. */
+.bas__world {
+  inset: 0;
+  transform: translate3d(0, var(--horizon), 0);
+  transition: transform 1100ms var(--ease-out);
+}
+
+/* ---- sky ---------------------------------------------------------------- */
+.bas__sky {
+  /* Tall enough above the frame to cover the world dropping 13% at LOW. */
+  inset: -34% 0 0 0;
+  background: linear-gradient(
+    180deg,
+    #1b1610 0%,
+    #2e2318 26%,
+    #5a3a22 54%,
+    #96552c 76%,
+    #c1763c 100%
+  );
+}
+
+/* ---- the key light ------------------------------------------------------
+    Position, size and intensity are the whole of the LIGHT control. A big
+    soft source with low intensity is an overcast day; a small hot one low in
+    the frame is the dramatic key.                                          */
+.bas__sun {
+  left: var(--sun-x);
+  top: var(--sun-y);
+  width: var(--sun-r);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(255, 231, 190, calc(var(--sun-i) * 0.92)) 0%,
+    rgba(255, 178, 102, calc(var(--sun-i) * 0.5)) 22%,
+    rgba(225, 84, 30, calc(var(--sun-i) * 0.24)) 46%,
+    transparent 74%
+  );
+  transition: left 900ms var(--ease-out), top 900ms var(--ease-out),
+    width 900ms var(--ease-out), background 900ms var(--ease-out),
+    transform 1100ms var(--ease-out);
+}
+
+/* ---- the far plane ------------------------------------------------------
+    THIS is the lens. Scaling the ridge up pulls the background toward the
+    subject and makes it loom — which is exactly what a long lens does — and
+    scaling it down throws it away, which is the wide. Anchored at the bottom
+    so the horizon line stays put while the mountains grow.                  */
+.bas__ridge {
+  /* Three frame-widths of range, centred. At the widest lens (0.6×) that is
+     still 180% of the frame, so the mountains always run off both edges — a
+     wide lens shows more range, never a strip that stops mid-frame. The path
+     tiles, so each frame-width keeps the original peak proportions. */
+  left: -100%;
+  bottom: 38%;
+  width: 300%;
+  height: 30%;
+  /* The site-wide `svg { max-width: 100% }` was clamping this to the frame,
+     which is why the range stopped short of the right edge at every lens. */
+  max-width: none;
+  transform-origin: 50% 100%;
+  transform: scale(var(--far));
+  transition: transform 1100ms var(--ease-out);
+}
+.bas__ridge path {
+  fill: #140f0b;
+}
+
+/* Air between the planes. More of it the further the background is. */
+.bas__haze {
+  left: 0;
+  right: 0;
+  bottom: 30%;
+  height: 34%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(150, 85, 44, 0.26) 60%,
+    rgba(120, 68, 36, 0.4) 100%
+  );
+}
+
+/* ---- the ground ---------------------------------------------------------
+    Its top edge is the horizon and it never moves relative to the ridge.
+    It runs far below the frame so the world can rise 26% for OVERHEAD
+    without exposing a gap. It used to scale on its own axis for the angle,
+    which moved its top edge and opened sky under the mountains.            */
+.bas__ground {
+  left: -10%;
+  right: -10%;
+  bottom: -45%;
+  height: 87%;
+  background: linear-gradient(180deg, #0d0a07 0%, #060504 40%, #050403 100%);
+}
+
+/* ---- the cast shadow ----------------------------------------------------
+    Drawn before the subject so he stands on it. Skewed away from the key. */
+.bas__cast {
+  left: 50%;
+  bottom: 27%;
+  width: calc(26% * var(--sh-len));
+  height: 4.5%;
+  border-radius: 50%;
+  background: rgba(4, 3, 2, var(--sh-op));
+  filter: blur(var(--sh-soft));
+  transform: translate3d(
+      calc(-50% + var(--sh-dir) * var(--sh-len) * 9%),
+      0,
+      0
+    )
+    scaleY(var(--tilt));
+  transition: width 900ms var(--ease-out), transform 1100ms var(--ease-out),
+    background-color 900ms var(--ease-out), filter 900ms var(--ease-out);
+}
+
+/* ---- the subject --------------------------------------------------------
+    The Paranti figure, composed from the existing glyphs. He grows with the
+    focal length but far less than the background does — that difference IS
+    compression.                                                             */
+.bas__subject {
+  left: 50%;
+  bottom: 27%;
+  width: calc(13% * var(--subj));
+  aspect-ratio: 280 / 445;
+  color: #080605;
+  transform: translate3d(-50%, 0, 0);
+  transform-origin: 50% 100%;
+  transition: width 1000ms var(--ease-out), transform 1100ms var(--ease-out);
+}
+.bas__subject svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---- the signature ------------------------------------------------------
+    One bird, high and small, crossing so slowly it reads as stillness.      */
+.bas__bird {
+  top: 17%;
+  left: 0;
+  color: rgba(10, 8, 6, 0.5);
+  animation: basBird 96s linear infinite;
+}
+
+@keyframes basBird {
+  from { transform: translate3d(-12%, 0, 0); }
+  to { transform: translate3d(880%, -26%, 0); }
+}
+
+/* ---- the grade ----------------------------------------------------------
+    Sits over the scene, as a grade does. Brand palette only: warm is the
+    orange, cool is the ink. No teal, no second accent.                      */
+.bas__grade {
+  inset: 0;
+  mix-blend-mode: soft-light;
+  transition: background 900ms var(--ease-out), opacity 900ms var(--ease-out);
+}
+
+.bas__vignette {
+  inset: 0;
+  background: radial-gradient(
+    116% 100% at 50% 46%,
+    transparent 48%,
+    rgba(6, 5, 4, 0.28) 82%,
+    rgba(5, 4, 3, 0.5) 100%
+  );
+  opacity: 0.55;
+  transition: opacity 900ms var(--ease-out);
+}
+
+/* ==========================================================================
+   LIGHT
+   ========================================================================== */
+.bas__monitor[data-light="SOFT"] {
+  --ex: 1.06; --con: 0.9; --sun-r: 88%; --sun-i: 0.4;
+  --sun-x: 56%; --sun-y: 30%;
+  --sh-len: 1.25; --sh-soft: 26px; --sh-op: 0.26; --sh-dir: -1;
+}
+.bas__monitor[data-light="HARD"] {
+  --ex: 1.02; --con: 1.22; --sun-r: 26%; --sun-i: 0.95;
+  --sun-x: 70%; --sun-y: 24%;
+  --sh-len: 0.7; --sh-soft: 5px; --sh-op: 0.62; --sh-dir: -1;
+}
+.bas__monitor[data-light="NATURAL"] {
+  --ex: 1; --con: 1; --sun-r: 46%; --sun-i: 0.5;
+  --sun-x: 62%; --sun-y: 38%;
+  --sh-len: 1; --sh-soft: 14px; --sh-op: 0.4; --sh-dir: -1;
+}
+.bas__monitor[data-light="DRAMATIC"] {
+  --ex: 0.9; --con: 1.34; --sun-r: 34%; --sun-i: 1;
+  --sun-x: 82%; --sun-y: 58%;
+  --sh-len: 1.85; --sh-soft: 10px; --sh-op: 0.72; --sh-dir: -1.6;
+}
+
+/* ==========================================================================
+   LENS
+   The subject barely changes size; the background changes a great deal. That
+   ratio is the only honest way to show focal length in a flat frame.
+   ========================================================================== */
+.bas__monitor[data-lens="24MM"] { --far: 0.6; --subj: 0.9; }
+.bas__monitor[data-lens="35MM"] { --far: 1; --subj: 1; }
+.bas__monitor[data-lens="50MM"] { --far: 1.45; --subj: 1.12; }
+/* 85mm was 2.3×, which put the peaks 15% above the top of the frame. 2.0×
+   with the shorter ridge keeps the summits in shot. */
+.bas__monitor[data-lens="85MM"] { --far: 2; --subj: 1.32; }
+
+/* ==========================================================================
+   ANGLE
+   The whole world moves with the horizon, and the cast shadow foreshortens.
+   Nothing else needs to.
+   ========================================================================== */
+.bas__monitor[data-angle="LOW"] { --horizon: 13%; --tilt: 0.42; }
+.bas__monitor[data-angle="EYE LEVEL"] { --horizon: 0%; --tilt: 1; }
+.bas__monitor[data-angle="HIGH"] { --horizon: -11%; --tilt: 1.5; }
+.bas__monitor[data-angle="OVERHEAD"] { --horizon: -26%; --tilt: 2.3; }
+
+/* ==========================================================================
+   MOOD
+   ========================================================================== */
+.bas__monitor[data-mood="RAW"] {
+  --sat: 0.82;
+}
+.bas__monitor[data-mood="RAW"] .bas__grade {
+  background: linear-gradient(180deg, rgba(243, 234, 211, 0.06), rgba(243, 234, 211, 0.03));
+  opacity: 0.5;
+}
+.bas__monitor[data-mood="RAW"] .bas__vignette { opacity: 0.3; }
+
+.bas__monitor[data-mood="CINEMATIC"] {
+  --sat: 1.06;
+}
+.bas__monitor[data-mood="CINEMATIC"] .bas__grade {
+  background: linear-gradient(
+    180deg,
+    rgba(225, 84, 30, 0.3) 0%,
+    rgba(225, 84, 30, 0.08) 42%,
+    rgba(22, 19, 15, 0.34) 100%
+  );
+  opacity: 1;
+}
+.bas__monitor[data-mood="CINEMATIC"] .bas__vignette { opacity: 0.7; }
+
+.bas__monitor[data-mood="DARK"] {
+  --ex: 0.74; --con: 1.2; --sat: 0.7;
+}
+.bas__monitor[data-mood="DARK"] .bas__grade {
+  background: linear-gradient(180deg, rgba(14, 12, 10, 0.52), rgba(6, 5, 4, 0.66));
+  opacity: 1;
+}
+.bas__monitor[data-mood="DARK"] .bas__vignette { opacity: 1; }
+
+.bas__monitor[data-mood="WARM"] {
+  --sat: 1.18;
+}
+.bas__monitor[data-mood="WARM"] .bas__grade {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 168, 88, 0.34) 0%,
+    rgba(225, 84, 30, 0.24) 60%,
+    rgba(150, 74, 32, 0.2) 100%
+  );
+  opacity: 1;
+}
+.bas__monitor[data-mood="WARM"] .bas__vignette { opacity: 0.5; }
+
+/* Mood sets exposure too, so it has to win over LIGHT's default — but only
+   where it genuinely means to. */
+.bas__monitor[data-mood="DARK"][data-light="SOFT"] { --ex: 0.8; }
+.bas__monitor[data-mood="DARK"][data-light="DRAMATIC"] { --ex: 0.68; --con: 1.42; }
+
+/* ==========================================================================
+   MONITOR FURNITURE
+   Readouts sit directly on the frame — no plates, no panels. A monitor's OSD
+   is thin text and four corner ticks, and that is all this is.
+   ========================================================================== */
+.bas__osd {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(243, 234, 211, 0.6);
+  text-shadow: 0 1px 8px rgba(6, 5, 4, 0.9);
+}
+
+.bas__osdrow {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+.bas__osdrow--top { top: 12px; }
+.bas__osdrow--bottom { bottom: 12px; }
+.bas__osdrow--bottom span:nth-child(2) { color: rgba(243, 234, 211, 0.85); }
+
+.bas__rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bas__rec i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--orange);
+  animation: basRec 2.6s var(--ease-inout) infinite;
+}
+@keyframes basRec {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.bas__marks i {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 1px solid rgba(243, 234, 211, 0.28);
+}
+.bas__marks i:nth-child(1) { left: 12px; top: 28px; border-right: 0; border-bottom: 0; }
+.bas__marks i:nth-child(2) { right: 12px; top: 28px; border-left: 0; border-bottom: 0; }
+.bas__marks i:nth-child(3) { left: 12px; bottom: 28px; border-right: 0; border-top: 0; }
+.bas__marks i:nth-child(4) { right: 12px; bottom: 28px; border-left: 0; border-top: 0; }
+
+/* ==========================================================================
+   CONTROLS
+   ========================================================================== */
+.bas__step {
+  padding: clamp(16px, 2vw, 22px) 0;
+  border-top: 1px solid var(--ink-line);
+}
+.bas__step:first-child { border-top: 0; padding-top: 0; }
+
+.bas__stephead {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  margin-bottom: 14px;
+}
+.bas__stepnum { color: rgba(243, 234, 211, 0.32); }
+.bas__steplabel { color: var(--cream); }
+.bas__stepval {
+  margin-left: auto;
+  color: rgba(243, 234, 211, 0.35);
+  transition: color 0.45s var(--ease-out);
+}
+.bas__step[data-done="true"] .bas__stepval { color: var(--orange); }
+
+.bas__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* A control on a camera body: a flat surface, a hairline, and a state. No
+   fills, no shadows, no rounded pills. */
+.bas__opt {
+  position: relative;
+  display: block;
+  text-align: left;
+  padding: 13px 14px;
+  background: rgba(243, 234, 211, 0.028);
+  border: 1px solid rgba(243, 234, 211, 0.12);
+  color: var(--cream);
+  cursor: pointer;
+  transition: background-color 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+}
+
+.bas__opt:hover,
+.bas__opt:focus-visible {
+  background: rgba(243, 234, 211, 0.06);
+  border-color: rgba(243, 234, 211, 0.26);
+  transform: translateY(-1px);
+}
+
+.bas__opt[data-on="true"] {
+  border-color: var(--orange);
+  background: rgba(225, 84, 30, 0.1);
+  transform: none;
+}
+
+/* The selected tell: a short rule that draws itself along the top edge. */
+.bas__opt::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  height: 2px;
+  width: 0;
+  background: var(--orange);
+  transition: width 0.5s var(--ease-out);
+}
+.bas__opt[data-on="true"]::after { width: 26px; }
+
+.bas__optname {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.bas__optnote {
+  display: block;
+  margin-top: 5px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(243, 234, 211, 0.44);
+  transition: color 0.4s var(--ease-out);
+}
+.bas__opt[data-on="true"] .bas__optnote { color: rgba(243, 234, 211, 0.62); }
+
+/* ==========================================================================
+   THE SLATE
+   ========================================================================== */
+.bas__result {
+  margin-top: clamp(22px, 3vw, 34px);
+  padding-top: clamp(20px, 2.6vw, 30px);
+  border-top: 1px solid var(--ink-line);
+}
+
+.bas__resulttitle {
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: rgba(243, 234, 211, 0.42);
+  margin-bottom: 14px;
+}
+
+.bas__slate {
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+.bas__slate > div {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(243, 234, 211, 0.07);
+}
+.bas__slate dt { color: rgba(243, 234, 211, 0.4); }
+.bas__slate dd {
+  color: var(--cream);
+  transition: color 0.45s var(--ease-out);
+}
+
+.bas__ready {
+  min-height: 1.3em;
+  margin-top: 16px;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--orange);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+.bas__result[data-ready="true"] .bas__ready {
+  opacity: 1;
+  transform: none;
+}
+
+.bas__again {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 20px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--cream);
+  background: none;
+  border: 1px solid var(--ink-line);
+  cursor: pointer;
+  transition: color 0.35s, border-color 0.35s, background-color 0.35s;
+}
+.bas__again:hover {
+  border-color: var(--orange);
+  background: rgba(225, 84, 30, 0.12);
+}
+.bas__again span {
+  transition: transform 0.4s var(--ease-out);
+}
+.bas__again:hover span { transform: translateX(4px); }
+
+/* ==========================================================================
+   MOBILE
+   One column, monitor first, and the controls get bigger rather than smaller.
+   The sticky monitor is released — on a phone it would eat the viewport.
+   ========================================================================== */
+@media (max-width: 900px) {
+  .bas__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(24px, 5vw, 40px);
+  }
+  .bas__monitorwrap {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .bas__options {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+  /* Comfortably past the 44px touch target, and the note still reads. */
+  .bas__opt {
+    padding: 14px 15px;
+  }
+  .bas__osd {
+    font-size: 8px;
+    letter-spacing: 0.14em;
+  }
+  .bas__osdrow { left: 10px; right: 10px; }
+  .bas__slate > div { grid-template-columns: 64px 1fr; gap: 10px; }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The camera still answers every control — it simply stops easing between
+   states, and the bird holds still.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .bas__monitor,
+  .bas__world,
+  .bas__sky,
+  .bas__sun,
+  .bas__ridge,
+  .bas__haze,
+  .bas__ground,
+  .bas__cast,
+  .bas__subject,
+  .bas__grade,
+  .bas__vignette,
+  .bas__opt,
+  .bas__opt::after,
+  .bas__ready {
+    transition: none;
+  }
+  .bas__bird,
+  .bas__rec i {
+    animation: none;
+  }
+  .bas__monitor[data-adjusting]:not([data-adjusting="none"]) .bas__scene {
+    animation: none;
+  }
+}

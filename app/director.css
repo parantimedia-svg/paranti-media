@@ -1,0 +1,477 @@
+/* ==========================================================================
+   PARANTI DIRECTOR MODE
+   --------------------------------------------------------------------------
+   Everything for the optional camera layer, in one file, so the feature can
+   be removed by deleting this stylesheet, DirectorMode.jsx and two lines
+   elsewhere. Nothing here restyles the site: the rules are either scoped to
+   .dm (the overlay's own furniture) or to :root[data-director="on"], which
+   only exists while the mode is on.
+
+   Palette is the brand's and nothing else — cream, ink, orange. No neon, no
+   glow, no second accent. A film camera's viewfinder is grey text on glass,
+   and the one warm element is the recording light, because on a real camera
+   that is the one warm element too.
+   ========================================================================== */
+
+.dm {
+  position: fixed;
+  inset: 0;
+  /* Above the page and the rail, below the grain (9999) and the modals, so
+     a case study or the showreel still opens cleanly on top. */
+  z-index: 9000;
+  pointer-events: none;
+  color: var(--cream);
+  font-feature-settings: "tnum" 1; /* the timecode must not jitter */
+}
+
+/* ---- powering on --------------------------------------------------------
+    The aperture opens once. Three soft elliptical blades at 60° to each
+    other, scaled out from nearly closed — the darkening arrives from six
+    directions rather than evenly from the edge, which is what separates an
+    iris from a vignette. It plays for well under a second and then it is
+    gone: this is a power-on, not an ambience.                               */
+.dm__iris {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  animation: dmIrisFade 900ms var(--ease-out) both;
+}
+
+.dm__blade {
+  position: absolute;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  transform-origin: 50% 50%;
+  background: radial-gradient(
+    42% 58% at 50% 50%,
+    transparent 0%,
+    transparent 34%,
+    rgba(10, 8, 6, 0.55) 62%,
+    rgba(8, 6, 5, 0.96) 100%
+  );
+  animation: dmIrisOpen 820ms var(--ease-out) both;
+}
+.dm__blade:nth-child(2) {
+  animation-name: dmIrisOpen2;
+}
+.dm__blade:nth-child(3) {
+  animation-name: dmIrisOpen3;
+}
+
+@keyframes dmIrisOpen {
+  from { transform: rotate(0deg) scale(0.62); }
+  to { transform: rotate(0deg) scale(2.6); }
+}
+@keyframes dmIrisOpen2 {
+  from { transform: rotate(60deg) scale(0.62); }
+  to { transform: rotate(60deg) scale(2.6); }
+}
+@keyframes dmIrisOpen3 {
+  from { transform: rotate(120deg) scale(0.62); }
+  to { transform: rotate(120deg) scale(2.6); }
+}
+@keyframes dmIrisFade {
+  0%, 72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* One scanline crossing the frame as the sensor wakes. Once only. */
+.dm__sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 32vh;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(243, 234, 211, 0.055) 62%,
+    rgba(243, 234, 211, 0.12) 88%,
+    transparent 100%
+  );
+  animation: dmSweep 900ms var(--ease-out) both;
+}
+
+@keyframes dmSweep {
+  from { transform: translate3d(0, -40vh, 0); opacity: 0.9; }
+  to { transform: translate3d(0, 105vh, 0); opacity: 0; }
+}
+
+/* ---- the glass ----------------------------------------------------------
+    Scanlines at 3% and a vignette at 22%. Both are deliberately at the edge
+    of perception: you should feel that you are looking through something,
+    never see the thing you are looking through.                            */
+.dm__glass {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+      180deg,
+      rgba(22, 19, 15, 0.03) 0px,
+      rgba(22, 19, 15, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(
+      120% 100% at 50% 50%,
+      transparent 52%,
+      rgba(12, 10, 8, 0.1) 78%,
+      rgba(10, 8, 6, 0.22) 100%
+    );
+  animation: dmGlassIn 700ms var(--ease-out) 260ms both;
+}
+
+@keyframes dmGlassIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- the HUD ------------------------------------------------------------
+    Four corners, 10px mono, letter-spaced, at 55% — the density of a real
+    viewfinder readout rather than a game overlay. No boxes, no panels, no
+    background plates: the readouts sit directly on the frame.              */
+.dm__hud {
+  position: absolute;
+  inset: 0;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  animation: dmHudIn 800ms var(--ease-out) 320ms both;
+}
+
+@keyframes dmHudIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dm__corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: rgba(243, 234, 211, 0.55);
+  text-shadow: 0 1px 10px rgba(8, 6, 5, 0.75);
+}
+
+/* Clear of the nav (86px) and the scroll rail on the left. */
+.dm__corner--tl {
+  top: calc(var(--nav-h) + 16px);
+  left: calc(var(--gutter) + var(--rail));
+}
+.dm__corner--tr {
+  top: calc(var(--nav-h) + 16px);
+  right: var(--gutter);
+  align-items: flex-end;
+}
+.dm__corner--bl {
+  bottom: 22px;
+  left: calc(var(--gutter) + var(--rail));
+}
+.dm__corner--br {
+  bottom: 22px;
+  right: var(--gutter);
+  align-items: flex-end;
+}
+
+.dm__brand {
+  color: rgba(243, 234, 211, 0.82);
+}
+
+/* The one warm element in the frame, and the only thing that moves. */
+.dm__rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(243, 234, 211, 0.7);
+}
+.dm__rec i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--orange);
+  animation: dmRec 2.6s var(--ease-inout) infinite;
+}
+
+@keyframes dmRec {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.dm__tc {
+  color: rgba(243, 234, 211, 0.78);
+  letter-spacing: 0.12em;
+}
+
+/* ---- the focus box ------------------------------------------------------
+    Four corner brackets, never a closed rectangle: a full outline reads as a
+    UI selection, open corners read as focus. Position, width and height come
+    from the loop; nothing here animates on its own except the lock accent.  */
+.dm__focus {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform, width, height;
+}
+
+.dm__focus i {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 1px solid rgba(243, 234, 211, 0.45);
+  transition: border-color 0.4s var(--ease-out);
+}
+.dm__focus i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.dm__focus i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.dm__focus i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.dm__focus i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+
+/* Locked: the brackets warm up. That is the entire state change — no fill,
+   no flash, no scale pop. */
+.dm__focus[data-lock="on"] i {
+  border-color: rgba(225, 84, 30, 0.9);
+}
+
+.dm__focuslabel {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  white-space: pre-line;
+  font-size: 9px;
+  line-height: 1.55;
+  letter-spacing: 0.18em;
+  color: rgba(225, 84, 30, 0.92);
+  text-shadow: 0 1px 10px rgba(8, 6, 5, 0.8);
+  opacity: 0;
+  transition: opacity 0.32s var(--ease-out);
+}
+.dm__focus[data-lock="on"] .dm__focuslabel {
+  opacity: 1;
+}
+
+/* ---- the exit -----------------------------------------------------------
+    The only thing in the overlay that takes a pointer. */
+.dm__exit {
+  position: absolute;
+  /* Bottom centre: the one gap between the two bottom readouts, and clear of
+     the headline. Top centre put it straight through the hero's second line. */
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(243, 234, 211, 0.72);
+  border: 1px solid rgba(243, 234, 211, 0.22);
+  background: rgba(10, 8, 6, 0.4);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s, background-color 0.3s;
+  animation: dmHudIn 800ms var(--ease-out) 320ms both;
+}
+.dm__exit:hover {
+  color: var(--cream);
+  border-color: var(--orange);
+  background: rgba(225, 84, 30, 0.16);
+}
+
+/* ---- the signature ------------------------------------------------------
+    One bird, rarely, crossing high in the frame. Held off screen until the
+    component sets data-fly, then it crosses once over nine seconds.        */
+.dm__bird {
+  position: absolute;
+  top: 17%;
+  left: 0;
+  color: rgba(12, 10, 8, 0.72);
+  opacity: 0;
+  transform: translate3d(-14vw, 0, 0);
+}
+.dm__bird[data-fly="true"] {
+  animation: dmBird 9s linear both;
+}
+
+@keyframes dmBird {
+  0% { opacity: 0; transform: translate3d(-14vw, 0, 0); }
+  12% { opacity: 0.5; }
+  50% { transform: translate3d(52vw, -3.2vh, 0); }
+  88% { opacity: 0.5; }
+  100% { opacity: 0; transform: translate3d(116vw, -1vh, 0); }
+}
+
+/* ==========================================================================
+   WHAT THE MODE DOES TO THE PAGE
+   --------------------------------------------------------------------------
+   All of it hangs off one attribute, and all of it is transform, opacity or
+   filter — nothing that reflows, and nothing that survives the attribute
+   being removed.
+   ========================================================================== */
+
+/* ---- the camera operator ------------------------------------------------
+    Three scene planes at 2px / 3px / 4px. These are the site's existing
+    fixed atmosphere layers, so the scene gains depth without a single
+    content element being transformed.
+
+    `main` is deliberately NOT moved: the contact section holds position:fixed
+    descendants, and a transform on an ancestor would become their containing
+    block and trap the whole descent inside the section.                     */
+:root[data-director="on"] .atmos--back {
+  transform: translate3d(calc(var(--dm-x, 0) * 2px), calc(var(--dm-y, 0) * 2px), 0);
+}
+:root[data-director="on"] .birds {
+  transform: translate3d(calc(var(--dm-x, 0) * -3px), calc(var(--dm-y, 0) * -3px), 0);
+}
+:root[data-director="on"] .atmos--front {
+  transform: translate3d(calc(var(--dm-x, 0) * -4px), calc(var(--dm-y, 0) * -4px), 0);
+}
+
+/* ---- the site's own cursor stands down ----------------------------------
+    The focus box is the cursor now. Two of them fighting is the fastest way
+    to make this feel like a gimmick. */
+:root[data-director="on"] .cursor {
+  opacity: 0 !important;
+}
+
+/* ---- exposure -----------------------------------------------------------
+    A third of a stop of lift across the frame while the mode is on, so the
+    page reads as being watched through glass rather than displayed. Applied
+    to the overlay's vignette, never as a filter on the page — filtering an
+    ancestor would make it the containing block for every fixed layer on the
+    site. */
+:root[data-director="on"] body {
+  --dm-on: 1;
+}
+
+/* ---- projects as film frames -------------------------------------------
+    The existing hover zoom already moves the media. This only adds the grade
+    a camera would apply: a touch more contrast, a touch less saturation. The
+    cards, the media and the copy are untouched. */
+:root[data-director="on"] .work__card .media img,
+:root[data-director="on"] .work__card .media video {
+  transition: transform 1.2s var(--ease-out), filter 0.7s var(--ease-out);
+}
+:root[data-director="on"] .work__card:hover .media img,
+:root[data-director="on"] .work__card:hover .media video {
+  filter: contrast(1.06) saturate(0.94) brightness(1.03);
+}
+
+/* ==========================================================================
+   THE TRIGGER
+   Lives in the hero. Reads as a camera control, not a call to action: no
+   fill, no arrow button, hairline rule and a recording dot.
+   ========================================================================== */
+.hero__viewfinder {
+  position: absolute;
+  bottom: clamp(22px, 3vh, 38px);
+  right: var(--gutter);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 2px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+  opacity: 0.45;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: opacity 0.4s var(--ease-out), color 0.4s var(--ease-out);
+}
+
+.hero__viewfinder::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--orange);
+  opacity: 0.75;
+}
+
+.hero__viewfinder i {
+  width: 26px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.4;
+  transition: width 0.45s var(--ease-out);
+}
+
+.hero__viewfinder:hover,
+.hero__viewfinder:focus-visible {
+  opacity: 1;
+}
+.hero__viewfinder:hover i,
+.hero__viewfinder:focus-visible i {
+  width: 40px;
+}
+
+/* ==========================================================================
+   PHONES
+   The focus box does not follow a finger there is no finger to follow, so
+   touch pulls focus on tap instead and the camera move is off entirely. The
+   HUD stays — it is the point of the mode — but drops to the two corners
+   that carry meaning, so it never crowds a 375px frame.
+   ========================================================================== */
+@media (max-width: 768px) {
+  .dm__corner {
+    font-size: 9px;
+    gap: 4px;
+  }
+  .dm__corner--tr,
+  .dm__corner--bl {
+    display: none;
+  }
+  .dm__corner--tl,
+  .dm__corner--br {
+    left: var(--gutter);
+    right: var(--gutter);
+  }
+  .dm__corner--tl {
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+  }
+  /* Lifted above the timecode, which sits on the same line on a phone, and
+     never allowed to wrap onto two lines. */
+  .dm__exit {
+    bottom: 48px;
+    white-space: nowrap;
+    font-size: 9px;
+    padding: 8px 13px;
+    letter-spacing: 0.14em;
+  }
+  .dm__focuslabel {
+    font-size: 8px;
+  }
+  .hero__viewfinder {
+    bottom: clamp(18px, 2.4vh, 30px);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The camera still exists; it stops moving. The readouts stay because they
+   are information, the iris and the sweep are gone because they are motion,
+   and the bird never flies.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .dm__iris,
+  .dm__sweep,
+  .dm__bird {
+    display: none;
+  }
+  .dm__glass,
+  .dm__hud,
+  .dm__exit {
+    animation: none;
+  }
+  .dm__rec i {
+    animation: none;
+  }
+  :root[data-director="on"] .atmos--back,
+  :root[data-director="on"] .birds,
+  :root[data-director="on"] .atmos--front {
+    transform: none;
+  }
+}
