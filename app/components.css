@@ -1255,12 +1255,12 @@
 /* ---- the studio film ------------------------------------------------------
     The media slot now holds a 9:16 Short. Left to fill its column it would
     stand roughly 960px tall beside a paragraph of copy, so it is capped at
-    400px wide — about 711px tall — which keeps it the section's image rather
+    320px wide — about 569px tall — which keeps it the section's image rather
     than its whole height. The frame keeps the site's existing card language:
     ink ground, the MediaFrame hover zoom, an orange rule on hover, and the
     same quiet play ring the Work section uses.                               */
 .about__media--film {
-  width: min(100%, 400px);
+  width: min(100%, 320px);
 }
 
 .about__film {
@@ -1335,7 +1335,7 @@
    whole frame and its play control sit inside one screen. */
 @media (max-width: 900px) {
   .about__media--film {
-    width: min(100%, 340px);
+    width: min(100%, 280px);
     margin-inline: auto;
   }
 }
