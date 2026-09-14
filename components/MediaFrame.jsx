@@ -125,8 +125,20 @@ function FrameVideo({
     };
   }, [reduced, failed, src]);
 
-  /* A missing or unplayable file falls back to the labelled placeholder
-     instead of a broken video element. */
+  /* A missing or unplayable file falls back to the poster still when there is
+     one — the frame keeps its thumbnail — and only to the labelled
+     placeholder when there is nothing to show at all. */
+  if (failed && poster) {
+    return (
+      <Image
+        src={poster}
+        alt={alt || label}
+        fill
+        sizes="100vw"
+        style={{ objectFit: fit, objectPosition: position }}
+      />
+    );
+  }
   if (failed) {
     return (
       <div className="ph">
