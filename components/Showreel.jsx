@@ -60,7 +60,7 @@ export default function Showreel() {
 
         <div className="showreel__meta mono reveal">
           <span>01 / SHOWREEL</span>
-          <span>CINEMATIC · 2:49</span>
+          <span>CINEMATIC · 1:48</span>
           <span>PARANTI MEDIA</span>
         </div>
       </div>

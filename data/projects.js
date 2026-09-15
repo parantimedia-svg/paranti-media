@@ -216,7 +216,7 @@ export const getProject = (id) => PROJECTS.find((p) => p.id === id) || null;
    .vercelignore keeps it out of the deploy.
    -------------------------------------------------------------------------- */
 export const SHOWREEL = {
-  youtube: "https://youtu.be/BUL93TCTVns",
+  youtube: "https://youtu.be/QlhymF7-sus",
   horizontal: {
     src: "/media/showreel-preview.mp4",
     poster: "/media/showreel-poster.jpg",
