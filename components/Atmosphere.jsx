@@ -165,15 +165,34 @@ export default function Atmosphere() {
        carry a matching CSS transition, so the steps are smoothed on the
        compositor and never seen. The dust stays on every frame (it is canvas,
        which costs no style work) — on phones every other frame, double step. */
+    /* While the page is scrolling the light holds still: its clock pauses
+       and no root property is written. Every root write restyles the whole
+       page (~9ms on a laptop), and one landing inside a scroll frame is what
+       made scrolling hitch. The light moves on 6–40s periods, so a pause for
+       the length of a scroll is invisible — and because the clock pauses
+       rather than skipping ahead, it resumes from where it stopped instead of
+       jumping. */
+    let lightClock = 0;
+    let prevNow = performance.now();
+    let lastScrollAt = -Infinity;
+    const onScroll = () => {
+      lastScrollAt = performance.now();
+    };
+
     const WRITE_MS = mobile ? 250 : 100;
     let lastWrite = -Infinity;
     let tick = 0;
     const step = mobile ? 2 : 1;
 
     const frame = (now) => {
-      const t = (now - start0) / 1000;
+      const scrolling = now - lastScrollAt < 220;
+      /* Capped so a tab coming back from the background resumes gently. */
+      if (!scrolling) lightClock += Math.min(100, Math.max(0, now - prevNow));
+      prevNow = now;
+      const t = lightClock / 1000; // the light's clock — paused while scrolling
+      const tReal = (now - start0) / 1000; // the dust keeps drifting regardless
       tick++;
-      const writeNow = now - lastWrite >= WRITE_MS;
+      const writeNow = !scrolling && now - lastWrite >= WRITE_MS;
       if (writeNow) lastWrite = now;
       const drawNow = !mobile || tick % 2 === 0;
 
@@ -225,7 +244,7 @@ export default function Atmosphere() {
         for (let i = 0; i < motes.length; i++) {
           const m = motes[i];
           m.y += m.vy * step;
-          m.x += (m.vx + Math.sin(t / 3.2 + m.phase) * 0.07 * m.sway) * step;
+          m.x += (m.vx + Math.sin(tReal / 3.2 + m.phase) * 0.07 * m.sway) * step;
           if (m.y < -20) seed(m, false);
           if (m.x < -20) m.x = w + 20;
           else if (m.x > w + 20) m.x = -20;
@@ -254,11 +273,13 @@ export default function Atmosphere() {
     resize();
     start();
     window.addEventListener("resize", resize, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       stop();
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [reduced]);
