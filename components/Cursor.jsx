@@ -51,6 +51,7 @@ export default function Cursor() {
     const onMove = (e) => {
       target.x = e.clientX;
       target.y = e.clientY;
+      if (!raf) raf = requestAnimationFrame(tick);
       if (!visible) {
         visible = true;
         wrap.style.opacity = "1";
@@ -82,11 +83,20 @@ export default function Cursor() {
     };
 
     const tick = () => {
-      // Lerp toward the pointer for a weighted, filmic follow.
-      pos.x += (target.x - pos.x) * 0.18;
-      pos.y += (target.y - pos.y) * 0.18;
+      /* Lerp toward the pointer: still weighted, but 0.3 rather than 0.18,
+         which trailed the hand by about a quarter of a second and read as
+         lag. Once it has caught up the loop stops; a pointer move starts it
+         again, so a still mouse costs nothing. */
+      pos.x += (target.x - pos.x) * 0.3;
+      pos.y += (target.y - pos.y) * 0.3;
+      const settled =
+        Math.abs(target.x - pos.x) < 0.1 && Math.abs(target.y - pos.y) < 0.1;
+      if (settled) {
+        pos.x = target.x;
+        pos.y = target.y;
+      }
       wrap.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
-      raf = requestAnimationFrame(tick);
+      raf = settled ? 0 : requestAnimationFrame(tick);
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });

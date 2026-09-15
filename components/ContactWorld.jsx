@@ -142,6 +142,7 @@ export default function ContactWorld() {
     let raf = 0;
     let running = false;
     let parts = [];
+    let drawn = true;
 
     const seed = (p, initial) => {
       p.x = Math.random() * w;
@@ -160,7 +161,10 @@ export default function ContactWorld() {
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      /* One canvas pixel per CSS pixel: the motes are 0.6–2.3px soft dots,
+         and a retina-resolution full-screen canvas (5.2MP) cleared every
+         frame was the most expensive animation loop on the page. */
+      dpr = 1;
       w = rect.width;
       h = rect.height;
       canvas.width = Math.round(w * dpr);
@@ -233,9 +237,15 @@ export default function ContactWorld() {
       /* Density follows the crossing: nothing on the cream page, a full drift
          once the reader is through. */
       const strength = enterRef.current;
-      ctx2d.clearRect(0, 0, w, h);
+      /* Clear only when the last frame drew something; on the approach,
+         while there is no dust yet, the canvas is left untouched. */
+      if (drawn) {
+        ctx2d.clearRect(0, 0, w, h);
+        drawn = false;
+      }
 
       if (strength > 0.02) {
+        drawn = true;
         const shown = Math.round(parts.length * Math.min(1, strength * 1.15));
 
         for (let i = 0; i < shown; i++) {

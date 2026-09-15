@@ -128,7 +128,11 @@ export default function Atmosphere() {
 
     const resize = () => {
       if (!canvas || !ctx) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      /* One canvas pixel per CSS pixel, even on retina screens. The motes
+         are soft 3–9px sprites, so double resolution buys nothing visible —
+         but it made this a 5.2-megapixel full-screen layer cleared and
+         re-uploaded every frame, a real share of each frame on a laptop. */
+      const dpr = 1;
       w = window.innerWidth;
       h = window.innerHeight;
       canvas.width = Math.round(w * dpr);

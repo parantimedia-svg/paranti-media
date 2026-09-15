@@ -20,8 +20,11 @@ export default function SmoothScroll() {
     }
 
     const lenis = new Lenis({
-      duration: 1.05,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      /* A follow rather than a fixed 1.05s glide. With the fixed duration the
+         page trailed ~140px behind the wheel for as long as you scrolled,
+         which read as lag; lerp 0.12 closes 12% of the gap every frame, so it
+         stays smooth but keeps up with the hand. */
+      lerp: 0.12,
       smoothWheel: true,
       syncTouch: false, // native momentum on touch feels better than emulation
       touchMultiplier: 1.6,
