@@ -208,12 +208,15 @@ export const getProject = (id) => PROJECTS.find((p) => p.id === id) || null;
                  the bare id — lib/youtube.js normalises all of them.
 
      `preview`   The silent 14-second loop that sits behind the PLAY REEL
-                 button. 1080p and roughly 1MB, cut from the master with a fade
-                 at each end so the loop reads as a beat rather than a jump.
+                 button. 1080p and roughly 1.2MB, cut from 1:26–1:40 of the
+                 master (the ride, "CINEMATIC CRAFT / MARKETING INSIGHT", the
+                 road). It fades out at the end only, so its first frame is a
+                 real picture — which is also the poster, so the still and the
+                 loop meet without a jump.
 
-   The 200MB master (public/media/showreel.mov, PCM audio, 2:48) is the source
-   both were cut from and the file to upload to YouTube. It is never served —
-   .vercelignore keeps it out of the deploy.
+   The 129MB master (public/media/showreel website.mov, 1:48) is the source
+   both were cut from and the film on YouTube. It is never served, and it is
+   not committed: GitHub rejects files over 100MB.
    -------------------------------------------------------------------------- */
 export const SHOWREEL = {
   youtube: "https://youtu.be/QlhymF7-sus",
