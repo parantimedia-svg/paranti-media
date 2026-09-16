@@ -14,6 +14,12 @@
       "runtimeArgs": ["run", "preview"],
       "port": 3100,
       "autoPort": true
+    },
+    {
+      "name": "paranti-debug",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd '/private/tmp/claude-501/-Users-swasthikshetty-Desktop-new-paranti-website/8032aba2-d8e1-41f6-bc5a-b265ae03f3db/scratchpad/debugbuild' && npx next start -p 3200"],
+      "port": 3200
     }
   ]
 }

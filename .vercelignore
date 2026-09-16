@@ -31,3 +31,6 @@ public/media/showreel.mov
 # Original, full-size service photos. The site serves the web-sized copies
 # in public/media/services instead.
 public/media/what we create
+
+# Video masters: never deployed (Vercel rejects files over 100MB).
+public/media/*.mov

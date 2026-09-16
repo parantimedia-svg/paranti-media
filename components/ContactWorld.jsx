@@ -117,6 +117,12 @@ export default function ContactWorld() {
        scroll-linked movement, no drifting dust. The recording light is left
        lit but still, because it is the one element carrying meaning. */
     if (reduced) {
+      /* The sun still needs its travel distance, or it would sit where it
+         starts rather than where the arrived world puts it. */
+      set(
+        "--sun-span",
+        `${(section.getBoundingClientRect().height * 0.4).toFixed(1)}px`
+      );
       set("--enter", "1");
       set("--travel", "1");
       set("--deep", "1");
@@ -183,6 +189,11 @@ export default function ContactWorld() {
       const r = section.getBoundingClientRect();
       docTop = r.top + window.scrollY;
       docHeight = r.height;
+      /* How far the sun sinks: the 40% of the section height it used to cover
+         by animating `top`, now handed to CSS as pixels so the same descent
+         can run as a transform. Layout was being recalculated on every
+         scrolled frame otherwise — the judder in this section. */
+      set("--sun-span", `${(docHeight * 0.4).toFixed(1)}px`);
     };
 
     /* Everything the environment needs, straight off the geometry. */

@@ -238,12 +238,17 @@ h3 {
 }
 
 /* --------------------------------------------------- 5. GRAIN ------------ */
+/*  Below the nav (z-index 100), not above it. A full-screen multiply layer
+    stacked over a fixed bar makes the browser re-blend that band on every
+    scrolled frame, and Chrome intermittently left half the nav unpainted —
+    the "glitch" in the closing section. The grain still covers all of the
+    page content; over a solid cream bar it was never visible anyway.        */
 .grain {
   position: fixed;
   /* -10% leaves room for the 2% steps of grainShift without an edge showing.
      It was -50%: a layer four times the screen, blended over everything. */
   inset: -10%;
-  z-index: 9999;
+  z-index: 99;
   pointer-events: none;
   opacity: 0.42;
   mix-blend-mode: multiply;

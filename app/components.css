@@ -17,6 +17,12 @@
   padding: 0 var(--gutter) 0 calc(var(--gutter) + var(--rail));
   transition: background-color 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out),
     height 0.4s var(--ease-out), backdrop-filter 0.5s;
+  /* Its own compositing layer: the bar is painted once and reused while the
+     page scrolls underneath, rather than being re-rastered with the scrolling
+     content — the other half of the half-painted-nav glitch. `will-change`
+     rather than translateZ(0), which Chrome flattens back to a 2D identity
+     and may not promote. */
+  will-change: transform;
 }
 
 /* Solid brand cream rather than a translucent blur: a backdrop-filter would
@@ -3288,13 +3294,21 @@
 /*  The source everything in the approach is lit by, sinking as the reader
     descends. When it goes below the horizon the world below is genuinely
     unlit — which is the whole reason the dark that follows is believable. */
+/*  The sun sinks by transform, never by `top`. Driving `top` moved it by
+    changing layout on every scrolled frame, and the browser reported a layout
+    shift each time — which is what made the whole closing section judder and
+    jump as you scrolled. `--sun-span` is the same 40% of the section height,
+    in pixels, measured once per resize in ContactWorld.jsx, so the descent is
+    identical and now runs on the compositor.                                */
 .cworld__sun {
   position: absolute;
   left: 62%;
-  top: calc(24% + var(--travel) * 40%);
+  top: 24%;
   width: min(54vw, 660px);
   height: min(54vw, 660px);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%)
+    translate3d(0, calc(var(--travel) * var(--sun-span, 0px)), 0);
+  will-change: transform;
   opacity: calc(var(--sky) * (1 - var(--night) * 0.98));
   background: radial-gradient(
     50% 50% at 50% 50%,
