@@ -1,55 +1,44 @@
 "use client";
 
 import { useEffect } from "react";
-import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-/* Lenis smooth scrolling, wired into GSAP's ticker so ScrollTrigger stays in
-   sync. Disabled entirely when the visitor prefers reduced motion — native
-   scrolling is left completely untouched in that case. */
+/* ==========================================================================
+   SCROLL SETUP
+   --------------------------------------------------------------------------
+   The page scrolls natively. It used to run Lenis smooth scrolling on
+   desktop, and that is what made the contact section judder: with Lenis the
+   scroll position is computed on the main thread every frame, so any frame
+   the browser is slow to paint — and the closing landscape, with its sun,
+   fog, dust and iris stacked full-screen, is the most expensive part of the
+   site to paint — stalls the page and then jumps it. Phones never had the
+   problem because they were already scrolling natively.
+
+   Native scrolling runs on the compositor: a slow frame can make an effect
+   lag by a frame, but it can no longer move the page unevenly.
+
+   ScrollTrigger still drives the hero entrance, and everything else reads
+   window.scrollY, which is exactly as correct without Lenis as with it.
+   Nothing else in the site depends on `window.__lenis` existing: every call
+   is optional (`window.__lenis?.stop()`), and scrollToHash falls back to the
+   browser's own smooth scrolling.
+   ========================================================================== */
 export default function SmoothScroll() {
   useEffect(() => {
     document.documentElement.classList.remove("no-js");
 
     gsap.registerPlugin(ScrollTrigger);
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      ScrollTrigger.refresh();
-      return;
-    }
-
-    const lenis = new Lenis({
-      /* A follow rather than a fixed glide. Measured side by side on the live
-         site with 3s of continuous wheel scrolling: the original 1.05s glide
-         trailed the wheel by ~408px and took ~865ms to settle after the hand
-         stopped; lerp 0.2 trails ~261px and settles in ~475ms, still smooth
-         (lerp 0.3 is snappier again, ~201px / ~317ms, but loses the glide). */
-      lerp: 0.2,
-      smoothWheel: true,
-      syncTouch: false, // native momentum on touch feels better than emulation
-      touchMultiplier: 1.6,
-    });
-
-    window.__lenis = lenis;
-    lenis.on("scroll", ScrollTrigger.update);
-
-    const raf = (time) => lenis.raf(time * 1000);
-    gsap.ticker.add(raf);
-    gsap.ticker.lagSmoothing(0);
+    ScrollTrigger.refresh();
 
     // Media finishing load changes page height — recalculate triggers.
     const onLoad = () => ScrollTrigger.refresh();
     window.addEventListener("load", onLoad);
 
-    /* A single refresh on load is not enough on this page. The story pins
-       itself only after probing its frames, which adds several viewports of
-       runway well after `load`, and every trigger below it — the contact
-       crossing especially — would keep the start position it measured against
-       the shorter document and sit permanently past its own end.
-
-       Watching the document height catches that, and every other late shift
-       (media decoding, font swap) for free. The 80px floor ignores the small
+    /* A single refresh on load is not enough on this page: images, fonts and
+       late-rendered media keep changing the document height well after
+       `load`, and every trigger below would keep the start position it
+       measured against the shorter document. The 80px floor ignores the small
        reflows a refresh itself causes, so this cannot feed itself. */
     let lastH = document.documentElement.scrollHeight;
     let settle = 0;
@@ -72,9 +61,6 @@ export default function SmoothScroll() {
       ro.disconnect();
       window.clearTimeout(settle);
       window.removeEventListener("load", onLoad);
-      gsap.ticker.remove(raf);
-      lenis.destroy();
-      delete window.__lenis;
     };
   }, []);
 
