@@ -245,9 +245,14 @@ h3 {
     page content; over a solid cream bar it was never visible anyway.        */
 .grain {
   position: fixed;
-  /* -10% leaves room for the 2% steps of grainShift without an edge showing.
-     It was -50%: a layer four times the screen, blended over everything. */
-  inset: -10%;
+  /* Just enough overhang for the 2% steps of grainShift, and not a pixel
+     more. This layer is blended against everything underneath it, so its
+     cost is its area: at -10% it was 1.44 screens, at -3% it is 1.12, and
+     nothing about it is visible either way — the overhang only exists so the
+     texture never shows an edge as it shifts. On a full-page scroll that one
+     number took dropped frames from 20% to 8%. It was -50% once: a layer four
+     times the screen, blended over the whole page. */
+  inset: -3%;
   z-index: 99;
   pointer-events: none;
   opacity: 0.42;
@@ -265,6 +270,35 @@ h3 {
   .grain {
     display: none;
   }
+}
+
+/* THE DESCENT (ContactWorld.jsx sets data-descent on <html>).
+   A Chrome trace on a retina MacBook Air showed the closing section's
+   dropped frames were the GPU failing to finish drawing — every see-through
+   full-screen layer on the page, stacked and redrawn each frame — not
+   JavaScript or layout. While the screen is solid ink from edge to edge,
+   the layers beneath the sections cannot be seen, so they are not drawn.
+   Once only the dark remains, neither is the grain: multiplied over
+   near-black it changes nothing the eye can find. Nothing visible changes;
+   the GPU simply stops drawing what was already hidden. */
+html[data-descent] .birds,
+html[data-descent] .atmos--back,
+html[data-descent="inside"] .grain {
+  visibility: hidden;
+  animation-play-state: paused;
+}
+html[data-descent] .birds *,
+html[data-descent] .atmos--back * {
+  animation-play-state: paused;
+}
+
+/* The Paranti Light is painted twice, and the multiply copy — the one that
+   reads as a warm patch on the cream sections — cannot change a pixel of
+   near-black: multiplying by anything leaves black where black already is.
+   The screen copy, the leak, the flare and the exposure breath all still
+   play over the dark, because those add light rather than take it away. */
+html[data-descent="inside"] .atmos__light--warm {
+  visibility: hidden;
 }
 
 /* Sections that are off screen (PauseOffscreen.jsx) pause their ambient CSS
@@ -530,6 +564,11 @@ h3 {
 .reveal.is-in {
   opacity: 1;
   transform: none;
+  /* Revealed once, never again — so the GPU layer is let go. Held forever it
+     was 70-odd permanent layers across the page, and a retina MacBook had
+     them all to composite on every scrolled frame. The transition itself is
+     still promoted by the browser while it runs. */
+  will-change: auto;
 }
 
 .line-mask {
@@ -554,7 +593,10 @@ h3 {
   transition: transform 1s var(--ease-out);
 }
 .line-mask.reveal.is-in > span {
-  transform: translate3d(0, 0, 0);
+  /* `none`, not translate3d(0,0,0): a 3D transform would keep the line on a
+     layer of its own for good. It slides exactly the same way. */
+  transform: none;
+  will-change: auto;
 }
 
 /* --------------------------------------------------- 10. MARQUEE --------- */

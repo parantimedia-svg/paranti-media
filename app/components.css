@@ -17,12 +17,16 @@
   padding: 0 var(--gutter) 0 calc(var(--gutter) + var(--rail));
   transition: background-color 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out),
     height 0.4s var(--ease-out), backdrop-filter 0.5s;
-  /* Its own compositing layer: the bar is painted once and reused while the
-     page scrolls underneath, rather than being re-rastered with the scrolling
-     content — the other half of the half-painted-nav glitch. `will-change`
-     rather than translateZ(0), which Chrome flattens back to a 2D identity
-     and may not promote. */
-  will-change: transform;
+  /* Deliberately NOT promoted with `will-change`. Giving the bar a layer of
+     its own was meant to stop it being re-rastered with the scrolling page,
+     and it did the opposite: recorded straight off the compositor, the
+     promoted bar arrived half painted — cream on the right, the dark section
+     showing through on the left — in two of four recorded runs through the
+     closing section (5 and 6 frames of those runs), and in none of the three
+     runs recorded without it. A promoted layer is rastered
+     in tiles on its own schedule, and under load some tiles simply are not
+     ready. Unpromoted, the bar is painted with the page and cannot be shown
+     in pieces. Fixed elements are composited for scrolling anyway. */
 }
 
 /* Solid brand cream rather than a translucent blur: a backdrop-filter would
@@ -2702,6 +2706,19 @@
 .cworld__dark {
   inset: 0;
   opacity: calc(0.3 + var(--enter) * 0.7);
+}
+
+/* The breathing lives on an inner layer. It used to be keyframed on the same
+   opacity as the scroll value above, with var(--enter) inside the keyframes,
+   so every scrolled frame changed the keyframes and Chrome had to rebuild
+   the running animation on the main thread. Split in two, the outer opacity
+   follows the scroll and the inner one breathes with fixed keyframes the
+   compositor can run on its own. Nested opacities multiply, so the dark is
+   exactly as deep as before. */
+.cworld__dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: radial-gradient(
       80% 100% at -10% 44%,
       rgba(14, 11, 9, 0.92) 0%,
@@ -2897,10 +2914,10 @@
 @keyframes darkBreathe {
   0%,
   100% {
-    opacity: calc(0.3 + var(--enter) * 0.7);
+    opacity: 1;
   }
   50% {
-    opacity: calc((0.3 + var(--enter) * 0.7) * 0.88);
+    opacity: 0.88;
   }
 }
 
@@ -2968,7 +2985,7 @@
      recording light still burns — those carry the meaning. What goes is the
      continuous repaint: the dark stops breathing and the lens ghosts drop
      out, which are the two most expensive layers on a phone. */
-  .cworld__dark {
+  .cworld__dark::before {
     animation: none;
   }
   .cworld__ghost {
@@ -3012,7 +3029,7 @@
 /* Reduced motion: the world is simply already there. Nothing loops, nothing
    drifts, and the recording light holds steady rather than breathing. */
 @media (prefers-reduced-motion: reduce) {
-  .cworld__dark,
+  .cworld__dark::before,
   .cworld__recdot,
   .cworld__bird,
   .cworld__birddrift,
@@ -3522,6 +3539,57 @@
 @keyframes fogRun {
   from { transform: translate3d(-5%, 0, 0); }
   to { transform: translate3d(5%, -3%, 0); }
+}
+
+/* ---- compositing ------------------------------------------------------- */
+/*  Every layer below changes opacity or transform on every scrolled frame,
+    driven by --enter / --travel / --deep. Without a compositor layer of its
+    own, each such change makes the browser REPAINT that element: a dozen
+    full-screen gradients plus two SVG ridges re-rasterised at each new
+    scale, every frame. At retina size (a 1677x865 window is ~5.8 million
+    pixels per layer) that far exceeds the frame budget, frames land late and
+    unevenly, and the fixed approach, the sticky stage and the normally
+    scrolling heading fall out of step — the "dancing". A small preview window
+    paints a fraction of the pixels, which is why it looked fine there.
+
+    Promoted, the same changes are re-blended by the GPU instead of repainted.
+    Only while the section is near (ContactWorld sets data-live from its
+    IntersectionObserver), so a dozen screen-sized layers are not held in GPU
+    memory for the rest of the page. Never on .cworld itself: a transform or
+    will-change there would trap the fixed veil and approach in the section. */
+.cworld[data-live="true"] .cworld__veil,
+.cworld[data-live="true"] .cworld__approach,
+.cworld[data-live="true"] .cworld__sky,
+.cworld[data-live="true"] .cworld__cloud,
+.cworld[data-live="true"] .cworld__stage,
+.cworld[data-live="true"] .cworld__dark,
+.cworld[data-live="true"] .cworld__floor,
+.cworld[data-live="true"] .cworld__iris,
+.cworld[data-live="true"] .cworld__lens,
+.cworld[data-live="true"] .cworld__rec {
+  will-change: opacity;
+}
+.cworld[data-live="true"] .cworld__range,
+.cworld[data-live="true"] .cworld__ridge,
+.cworld[data-live="true"] .cworld__shadow,
+.cworld[data-live="true"] .cworld__fogbank {
+  will-change: transform, opacity;
+}
+
+/*  Outside its own stretch of the scroll each half of the world is exactly
+    transparent, so it is taken out of rendering altogether rather than
+    composited at opacity 0. ContactWorld sets the flags at the same
+    thresholds the opacities reach zero, so nothing visible changes. Its
+    loops are paused with it: an invisible cloud still costs a style update
+    per frame. */
+.cworld[data-approach="off"] .cworld__approach,
+.cworld[data-stage="off"] .cworld__stage {
+  visibility: hidden;
+}
+.cworld[data-approach="off"] .cworld__approach *,
+.cworld[data-stage="off"] .cworld__stage *,
+.cworld[data-stage="off"] .cworld__stage *::before {
+  animation-play-state: paused;
 }
 
 /* ---- handover ----------------------------------------------------------- */
@@ -4459,5 +4527,360 @@
   .process::before,
   .process::after {
     transform: none;
+  }
+}
+
+/* ==========================================================================
+   THE DESCENT, TIED TO THE SCROLL ITSELF
+   --------------------------------------------------------------------------
+   Everything above drives this section from JavaScript: one rAF per frame
+   writes --enter/--travel/--deep/--lens/--rec and CSS reads them. That is
+   correct but fragile, because the page does not scroll on the main thread.
+   The browser scrolls the page on the compositor, so whenever the main thread
+   is late — and on a retina MacBook, in this section, it is late by 300ms to
+   900ms at a time — the page keeps moving while the sky, the mountains and
+   the dark stay on the frame they last managed. Then they snap. Recorded off
+   the compositor, one frame had the page at the top of the contact section
+   while the sky was still mid-sunset. That mismatch is what reads as the
+   section "dancing" and "jumping".
+
+   Below, the same values are expressed as scroll-linked animations. The
+   browser advances them from the scroll position itself, on the compositor,
+   so a layer can no longer show a different moment from the page it belongs
+   to, however late the main thread runs. Nothing about the look changes: each
+   keyframe is the same number the calc() above works out at that point, and
+   the ramps that were smoothstep carry a matching easing.
+
+   Three timelines, each a range of scroll (see the markers in
+   ContactWorld.jsx):
+     --cwTravel   the approach: from 1.4 screens before the section reaches
+                  the top of the window, until it does
+     --cwEnter    the crossing: the section's top from the bottom of the
+                  window to the top
+     --cwQ        the section passing the bottom of the window, top to bottom
+
+   The JavaScript stops writing the properties where this is supported, and
+   keeps only what CSS cannot do: the dust canvas, the sun's travel distance
+   in pixels, and the flags that retire invisible layers.
+   ========================================================================== */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The markers are laid out but never painted; each one's span of scroll
+       is the range its timeline covers. */
+    .cworld__t {
+      position: absolute;
+      left: 0;
+      width: 0;
+      pointer-events: none;
+    }
+    .cworld__t--travel {
+      top: -40vh;
+      height: 40vh;
+      view-timeline: --cwTravel block;
+    }
+    .cworld__t--enter {
+      top: 0;
+      height: 0;
+      view-timeline: --cwEnter block;
+    }
+    /*  The section's own top edge travelling one section-height up the screen:
+        0 as it reaches the bottom of the window, 1 as the section's bottom
+        does. The section itself cannot stand in for this — for a subject
+        taller than the window, the browser's own "entry" range ends the moment
+        its top reaches the top of the window, which is a whole section-height
+        too early, and the recording light went out before it ever came on. */
+    .cworld__t--q {
+      top: 0;
+      height: max(1px, calc(100% - 100vh));
+      view-timeline: --cwQ block;
+    }
+    .contact {
+      /* The rulers are siblings of the layers they drive, not ancestors, so
+         their names have to be published to the whole section — without this
+         the animations attach to no timeline at all, sit at their first
+         keyframe, and the sky never arrives. */
+      timeline-scope: --cwTravel, --cwEnter, --cwQ;
+    }
+
+    .cworld__sky,
+    .cworld__sun,
+    .cworld__cloud,
+    .cworld__bird,
+    .cworld__range,
+    .cworld__ridge,
+    .cworld__shadow,
+    .cworld__fogbank,
+    .cworld__approach,
+    .cworld__stage {
+      animation-timeline: --cwTravel;
+      animation-range: cover 0% cover 100%;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-duration: 1ms; /* ignored on a scroll timeline; keeps Safari happy */
+    }
+    .cworld__veil,
+    .cworld__dark,
+    .cworld__floor,
+    .contact__grid::before {
+      animation-timeline: --cwEnter;
+      animation-range: cover 0% cover 100%;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-duration: 1ms;
+    }
+    .cworld__iris,
+    .cworld__blade,
+    .cworld__lens,
+    .cworld__rec {
+      animation-timeline: --cwQ;
+      animation-range: cover 0% cover 100%;
+      animation-fill-mode: both;
+      animation-duration: 1ms;
+    }
+
+    /* ---- the approach ---------------------------------------------------- */
+    .cworld__sky { animation-name: cwSky; }
+    @keyframes cwSky {
+      0%, 4% { opacity: 0; }
+      30%, 42% { opacity: 1; }
+      86%, 100% { opacity: 0.06; }
+    }
+
+    /* Two animations on one element: the fade and the fall, both off the same
+       timeline. The fall is linear in travel, so two keyframes say it all. */
+    .cworld__sun {
+      animation-name: cwSunFade, cwSunFall;
+      /* The transform is the animation now, so the static one must not fight
+         it: the translate(-50%,-50%) that centres the sun is folded into the
+         keyframes below. */
+      transform: translate(-50%, -50%);
+    }
+    @keyframes cwSunFade {
+      0%, 4% { opacity: 0; }
+      30%, 42% { opacity: 1; }
+      86%, 100% { opacity: 0.02; }
+    }
+    @keyframes cwSunFall {
+      from { transform: translate(-50%, -50%) translate3d(0, 0, 0); }
+      to { transform: translate(-50%, -50%) translate3d(0, var(--sun-span, 0px), 0); }
+    }
+
+    /* The clouds and the birds already carry a time-based drift. A second
+       animation, on the scroll timeline, carries the light. */
+    .cworld__cloud {
+      animation-name: cloudRun, cwCloud;
+      animation-timeline: auto, --cwTravel;
+      animation-duration: 96s, 1ms;
+      animation-iteration-count: infinite, 1;
+      animation-timing-function: linear, linear;
+    }
+    .cworld__cloud--b {
+      animation-name: cloudRun, cwCloudB;
+      animation-duration: 132s, 1ms;
+      animation-direction: reverse, normal;
+    }
+    .cworld__cloud--c {
+      animation-name: cloudRun, cwCloud;
+      animation-duration: 168s, 1ms;
+    }
+    @keyframes cwCloud {
+      0%, 4% { opacity: 0; }
+      26%, 42% { opacity: 1; }
+      86%, 100% { opacity: 0.14; }
+    }
+    @keyframes cwCloudB {
+      0%, 10% { opacity: 0; }
+      32%, 42% { opacity: 1; }
+      86%, 100% { opacity: 0.14; }
+    }
+
+    .cworld__bird {
+      animation-name: cbCross, cwBird;
+      animation-timeline: auto, --cwTravel;
+      animation-iteration-count: infinite, 1;
+      animation-timing-function: linear, linear;
+    }
+    .cworld__bird--rtl { animation-name: cbCrossRtl, cwBird; }
+    @keyframes cwBird {
+      0%, 6% { opacity: 0; }
+      24%, 42% { opacity: var(--cb-alpha, 0.5); }
+      86%, 100% { opacity: calc(var(--cb-alpha, 0.5) * 0.04); }
+    }
+
+    .cworld__range { animation-name: cwRange; }
+    @keyframes cwRange {
+      0%, 10% { opacity: 0; transform: translate3d(0, 10%, 0) scale(1); }
+      32% { opacity: 1; }
+      30% { transform: translate3d(0, 10%, 0) scale(1); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.55); }
+    }
+
+    .cworld__ridge { animation-name: cwRidge; }
+    @keyframes cwRidge {
+      0%, 18% { opacity: 0; transform: translate3d(0, 22%, 0) scale(1); }
+      30% { transform: translate3d(0, 22%, 0) scale(1); }
+      40% { opacity: 1; }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(2.5); }
+    }
+
+    .cworld__shadow { animation-name: cwShadow; }
+    @keyframes cwShadow {
+      0%, 42% { opacity: 0; transform: translate3d(0, 42%, 0); }
+      86%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    .cworld__fogbank {
+      animation-name: fogRun, cwFog;
+      animation-timeline: auto, --cwTravel;
+      animation-duration: 74s, 1ms;
+      animation-iteration-count: infinite, 1;
+      animation-direction: alternate, normal;
+      animation-timing-function: ease-in-out, linear;
+    }
+    @keyframes cwFog {
+      0%, 14% { opacity: 0; }
+      40%, 100% { opacity: 1; }
+    }
+
+    /* ---- the handover ---------------------------------------------------- */
+    /*  Each half is also taken out of rendering across the stretch where it is
+        exactly transparent — the same saving the JavaScript flags make, but
+        carried by the scroll instead of by a callback. That matters more than
+        the saving: a flag only moves when the main thread runs, so a stall at
+        the wrong moment could leave the sky switched off while the reader
+        scrolled through the very place it belongs, and the screen would simply
+        be black. Off the scroll, that cannot happen. */
+    .cworld__approach { animation-name: cwApproach; }
+    @keyframes cwApproach {
+      0%, 3.9% { opacity: 1; visibility: hidden; }
+      4%, 88% { opacity: 1; visibility: visible; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+
+    .cworld__stage { animation-name: cwStage; }
+    @keyframes cwStage {
+      0%, 65.9% { opacity: 0; visibility: hidden; }
+      66% { opacity: 0; visibility: visible; }
+      100% { opacity: 1; visibility: visible; }
+    }
+
+    /*  The JavaScript flags are the fallback's business only; where the scroll
+        drives visibility, ContactWorld stops setting them at all. */
+
+    /* ---- the crossing ---------------------------------------------------- */
+    .cworld__veil { animation-name: cwVeil; }
+    @keyframes cwVeil { from { opacity: 0; } to { opacity: 0.97; } }
+
+    .cworld__dark { animation-name: cwDark; }
+    @keyframes cwDark { from { opacity: 0.3; } to { opacity: 1; } }
+
+    .cworld__floor { animation-name: cwFloor; }
+    @keyframes cwFloor { from { opacity: 0; } to { opacity: 1; } }
+
+    .contact__grid::before { animation-name: cwPanel; }
+    @keyframes cwPanel { from { opacity: 0.45; } to { opacity: 1; } }
+
+    /* ---- inside the camera ----------------------------------------------- */
+    /*  --deep was a pair of smoothsteps; the easing carries that shape. */
+    .cworld__iris {
+      animation-name: cwIris;
+      animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+    }
+    @keyframes cwIris {
+      0%, 18% { opacity: 0; }
+      42%, 86% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /*  The blades close with --deep, so they follow the same curve. Each keeps
+        its own 60° so the falloff still arrives from six directions. */
+    .cworld__blade { animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+    .cworld__blade:nth-child(1) { animation-name: cwBlade1; }
+    .cworld__blade:nth-child(2) { animation-name: cwBlade2; }
+    .cworld__blade:nth-child(3) { animation-name: cwBlade3; }
+    @keyframes cwBlade1 {
+      0%, 18% { transform: rotate(0deg) scale(2.3); }
+      42%, 86% { transform: rotate(0deg) scale(1.05); }
+      100% { transform: rotate(0deg) scale(2.3); }
+    }
+    @keyframes cwBlade2 {
+      0%, 18% { transform: rotate(60deg) scale(2.3); }
+      42%, 86% { transform: rotate(60deg) scale(1.05); }
+      100% { transform: rotate(60deg) scale(2.3); }
+    }
+    @keyframes cwBlade3 {
+      0%, 18% { transform: rotate(120deg) scale(2.3); }
+      42%, 86% { transform: rotate(120deg) scale(1.05); }
+      100% { transform: rotate(120deg) scale(2.3); }
+    }
+
+    .cworld__lens {
+      animation-name: cwLens;
+      animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+    }
+    @keyframes cwLens {
+      0%, 26% { opacity: 0; }
+      44%, 50% { opacity: 1; }
+      68%, 100% { opacity: 0; }
+    }
+
+    .cworld__rec {
+      animation-name: cwRec;
+      animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+    }
+    @keyframes cwRec {
+      0%, 42% { opacity: 0; }
+      60%, 90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* A phone closes the aperture a little less far, and pushes in less. */
+    @media (max-width: 768px) {
+      @keyframes cwBlade1 {
+        0%, 18% { transform: rotate(0deg) scale(2.5); }
+        42%, 86% { transform: rotate(0deg) scale(1.4); }
+        100% { transform: rotate(0deg) scale(2.5); }
+      }
+      @keyframes cwBlade2 {
+        0%, 18% { transform: rotate(60deg) scale(2.5); }
+        42%, 86% { transform: rotate(60deg) scale(1.4); }
+        100% { transform: rotate(60deg) scale(2.5); }
+      }
+      @keyframes cwBlade3 {
+        0%, 18% { transform: rotate(120deg) scale(2.5); }
+        42%, 86% { transform: rotate(120deg) scale(1.4); }
+        100% { transform: rotate(120deg) scale(2.5); }
+      }
+      @keyframes cwRidge {
+        0%, 18% { opacity: 0; transform: translate3d(0, 18%, 0) scale(1); }
+        30% { transform: translate3d(0, 18%, 0) scale(1); }
+        40% { opacity: 1; }
+        100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.5); }
+      }
+      .cworld__cloud--a { animation-duration: 140s, 1ms; }
+      .cworld__fogbank {
+        animation-name: cwFog;
+        animation-timeline: --cwTravel;
+        animation-duration: 1ms;
+        animation-iteration-count: 1;
+        animation-direction: normal;
+      }
+    }
+
+    /*  The enquiry landed, so the camera stops — and an animation outranks the
+        declaration that puts the light out, so it has to stand aside for it. */
+    .contact[data-sent="true"] .cworld__rec {
+      animation-name: none;
+    }
+
+    /*  The off-screen pause must not reach these: the descent starts 1.4
+        screens before the section arrives, which is further out than the
+        300px margin that marks a section off screen, and a paused scroll
+        animation would hold the sky on one frame for the whole approach. */
+    [data-offscreen="true"] .cworld *,
+    [data-offscreen="true"] .cworld,
+    [data-offscreen="true"] .contact__grid::before {
+      animation-play-state: running !important;
+    }
   }
 }

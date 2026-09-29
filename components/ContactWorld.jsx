@@ -95,6 +95,7 @@ export default function ContactWorld() {
   const rootRef = useRef(null);
   const dustRef = useRef(null);
   const enterRef = useRef(0);
+  const scrollDrivenRef = useRef(false);
   const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
@@ -111,6 +112,40 @@ export default function ContactWorld() {
       if (written[k] === v) return;
       written[k] = v;
       root.style.setProperty(k, v);
+    };
+
+    /* Each half of the world is only drawn across the part of the scroll
+       where it can actually be seen. Outside it the half is exactly
+       transparent (see the thresholds below), but a transparent full-screen
+       layer is still rasterised and composited every frame — on a retina
+       MacBook that was a large share of the frames the descent dropped. */
+    const flag = (k, on) => {
+      const v = on ? "on" : "off";
+      if (root.dataset[k] !== v) root.dataset[k] = v;
+    };
+    const phase = (travel) => {
+      /* Where the scroll drives visibility (see components.css), these flags
+         must stay out of it: a flag set from a callback is stale exactly when
+         the main thread is late, and a stale one can hide the sky. */
+      if (scrollDrivenRef.current) return;
+      /* Every approach layer's opacity ramps up from travel 0.04 (sky, sun,
+         clouds — the earliest), and the approach as a whole reaches 0 at 1. */
+      flag("approach", travel > 0.04 && travel < 1);
+      /* The interior's opacity is --inside, which is 0 until travel 0.66. */
+      flag("stage", travel > 0.66);
+    };
+
+    /* Written on <html> because the layers it retires live outside this
+       section. "covered": the screen is solid ink from edge to edge, so the
+       layers beneath the sections are hidden. "inside": additionally the lit
+       approach has gone, leaving only the dark — where the film grain,
+       multiplied over near-black, no longer changes a visible pixel. */
+    const html = document.documentElement;
+    const descent = (v) => {
+      if ((html.dataset.descent || "") !== v) {
+        if (v) html.dataset.descent = v;
+        else delete html.dataset.descent;
+      }
     };
 
     /* Reduced motion still gets the world, just already arrived — no
@@ -132,12 +167,25 @@ export default function ContactWorld() {
          streak across the section for anyone on reduced motion — a flare
          from a move that never happens. */
       set("--lens", "0");
+      phase(1);
       enterRef.current = 1;
       return;
     }
 
     const ctx2d = canvas.getContext("2d", { alpha: true });
     if (!ctx2d) return;
+
+    /* Where the browser can drive the descent off the scroll position itself,
+       it does, and these writes stop: a property written here lands a frame
+       late at best, and several hundred milliseconds late when the main thread
+       stalls, which is exactly when the sky was left showing the wrong moment.
+       What stays is what CSS cannot do — the dust, the sun's travel distance,
+       and the flags that retire layers nothing can see. */
+    const scrollDriven =
+      typeof CSS !== "undefined" &&
+      CSS.supports &&
+      CSS.supports("animation-timeline", "view()");
+    scrollDrivenRef.current = scrollDriven;
 
     const mobile = window.matchMedia("(max-width: 768px)").matches;
     const COUNT = mobile ? 14 : 34;
@@ -149,6 +197,9 @@ export default function ContactWorld() {
     let running = false;
     let parts = [];
     let drawn = true;
+    /* The boxes painted last frame, flat as x, y, w, h — the only pixels the
+       next frame has to clear. */
+    const dirty = [];
 
     const seed = (p, initial) => {
       p.x = Math.random() * w;
@@ -176,6 +227,9 @@ export default function ContactWorld() {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+      /* Setting the width cleared the canvas, so nothing is owed a clear. */
+      dirty.length = 0;
+      drawn = false;
       parts = Array.from({ length: COUNT }, () => seed({}, true));
     };
 
@@ -185,10 +239,35 @@ export default function ContactWorld() {
        position is then just arithmetic on the scroll position. */
     let docTop = 0;
     let docHeight = 1;
+    /* The stretch of page painted in solid ink around the descent: the
+       unbroken run of opaque sections leading into it, the section itself
+       and an opaque footer after it. While the screen sits entirely inside
+       that stretch, the page-level layers underneath it (the sky's birds and
+       the back plane of the atmosphere) cannot be seen at all. */
+    let coverTop = 0;
+    let coverBottom = 0;
+    const opaque = (el) => {
+      const bg = getComputedStyle(el).backgroundColor;
+      const m = bg.match(/rgba?\(([^)]+)\)/);
+      if (!m) return false;
+      const parts = m[1].split(",");
+      return parts.length < 4 || parseFloat(parts[3]) >= 1;
+    };
     const measureSection = () => {
       const r = section.getBoundingClientRect();
       docTop = r.top + window.scrollY;
       docHeight = r.height;
+
+      let first = section;
+      while (first.previousElementSibling && opaque(first.previousElementSibling)) {
+        first = first.previousElementSibling;
+      }
+      coverTop = first.getBoundingClientRect().top + window.scrollY;
+      coverBottom = docTop + docHeight;
+      const after = section.parentElement?.nextElementSibling;
+      if (!section.nextElementSibling && after && opaque(after)) {
+        coverBottom = after.getBoundingClientRect().bottom + window.scrollY;
+      }
       /* How far the sun sinks: the 40% of the section height it used to cover
          by animating `top`, now handed to CSS as pixels so the same descent
          can run as a transform. Layout was being recalculated on every
@@ -224,6 +303,17 @@ export default function ContactWorld() {
       const q = clamp01((vh - r.top) / Math.max(1, r.height));
 
       enterRef.current = enter;
+      phase(travel);
+
+      const y = window.scrollY;
+      /* Two pixels inside the run at each end: scroll positions are
+         fractional, and a sliver of a lit section showing at the seam would
+         be a sliver with its sky missing. */
+      const covered = y >= coverTop + 2 && y + vh <= coverBottom - 2;
+      descent(covered ? (travel >= 1 ? "inside" : "covered") : "");
+
+      if (scrollDriven) return;
+
       set("--enter", enter.toFixed(4));
       set("--travel", travel.toFixed(4));
 
@@ -248,10 +338,16 @@ export default function ContactWorld() {
       /* Density follows the crossing: nothing on the cream page, a full drift
          once the reader is through. */
       const strength = enterRef.current;
-      /* Clear only when the last frame drew something; on the approach,
-         while there is no dust yet, the canvas is left untouched. */
+      /* Clear only the boxes the last frame actually painted, never the whole
+         canvas. Thirty-odd 2px motes on a screen-sized canvas were costing a
+         full-screen clear and, with it, a full-screen texture hand-off to the
+         GPU on every frame — on a retina MacBook, several megabytes a frame
+         for a few specks of dust. Same dust, a thousandth of the pixels. */
       if (drawn) {
-        ctx2d.clearRect(0, 0, w, h);
+        for (let i = 0; i < dirty.length; i += 4) {
+          ctx2d.clearRect(dirty[i], dirty[i + 1], dirty[i + 2], dirty[i + 3]);
+        }
+        dirty.length = 0;
         drawn = false;
       }
 
@@ -273,6 +369,9 @@ export default function ContactWorld() {
             ? `rgba(225, 84, 30, ${a})`
             : `rgba(243, 234, 211, ${a * 0.7})`;
           ctx2d.fill();
+          /* One pixel of slack around the circle for the antialiased edge. */
+          const pad = p.r + 1.5;
+          dirty.push(p.x - pad, p.y - pad, pad * 2, pad * 2);
         }
       }
 
@@ -312,6 +411,9 @@ export default function ContactWorld() {
        mid-crossing the moment it scrolled away. */
     const io = new IntersectionObserver(
       ([entry]) => {
+        /* Promote the descent's layers to their own GPU layers only while
+           the section is near — see "compositing" in components.css. */
+        root.dataset.live = entry.isIntersecting ? "true" : "false";
         if (entry.isIntersecting) {
           start();
         } else {
@@ -320,6 +422,8 @@ export default function ContactWorld() {
           enterRef.current = above ? 1 : 0;
           set("--enter", above ? "1" : "0");
           set("--travel", above ? "1" : "0");
+          phase(above ? 1 : 0);
+          descent("");
           set("--deep", "0");
           set("--lens", "0");
           set("--rec", "0");
@@ -345,6 +449,7 @@ export default function ContactWorld() {
 
     return () => {
       stop();
+      descent("");
       io.disconnect();
       ro.disconnect();
       cancelAnimationFrame(remeasure);
@@ -355,6 +460,14 @@ export default function ContactWorld() {
 
   return (
     <div className="cworld" ref={rootRef} aria-hidden="true">
+      {/* Two rulers, never painted. Each one's own span of scroll is the range
+          the browser drives the descent across — see "THE DESCENT, TIED TO THE
+          SCROLL ITSELF" in components.css. They come first so everything below
+          can name their timelines. */}
+      <span className="cworld__t cworld__t--travel" />
+      <span className="cworld__t cworld__t--enter" />
+      <span className="cworld__t cworld__t--q" />
+
       {/* Fixed: this is what drains the light from the ordinary page on the
           way in, so the crossing starts before the section does. */}
       <span className="cworld__veil" />

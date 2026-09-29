@@ -84,6 +84,12 @@ export default function Atmosphere() {
     let raf = 0;
     let running = false;
     let motes = [];
+    /* The boxes the last drawn frame actually painted, flat as x, y, w, h.
+       Clearing those instead of the whole canvas is the difference between
+       handing the GPU a screen-sized texture every frame and handing it a few
+       dozen small ones: switching this canvas off outright took a full-page
+       scroll from 20% dropped frames to 6%, and this keeps the dust. */
+    const dirty = [];
 
     /* One soft mote, rendered once into an offscreen canvas and then stamped
        per particle. A hard `arc()` fill reads as a polka dot at any alpha —
@@ -140,6 +146,8 @@ export default function Atmosphere() {
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      /* Setting the width cleared it, so nothing is owed a clear. */
+      dirty.length = 0;
       if (!sprite) sprite = buildSprite();
       motes = Array.from({ length: COUNT }, () => seed({}, true));
     };
@@ -240,7 +248,10 @@ export default function Atmosphere() {
          against the cream. The ink sections cover this plane entirely and
          carry their own atmosphere instead. */
       if (ctx && sprite && drawNow) {
-        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < dirty.length; i += 4) {
+          ctx.clearRect(dirty[i], dirty[i + 1], dirty[i + 2], dirty[i + 3]);
+        }
+        dirty.length = 0;
         for (let i = 0; i < motes.length; i++) {
           const m = motes[i];
           m.y += m.vy * step;
@@ -251,6 +262,8 @@ export default function Atmosphere() {
 
           ctx.globalAlpha = m.a;
           ctx.drawImage(sprite, m.x - m.r / 2, m.y - m.r / 2, m.r, m.r);
+          /* A pixel of slack around the sprite for its soft edge. */
+          dirty.push(m.x - m.r / 2 - 1, m.y - m.r / 2 - 1, m.r + 2, m.r + 2);
         }
         ctx.globalAlpha = 1;
       }
