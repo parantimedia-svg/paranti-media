@@ -429,18 +429,12 @@ html[data-descent="inside"] .atmos__light--warm {
 }
 
 .logo-plate img {
-  /* Blends against whatever cream sits behind it — no isolation here, that
-     would cut the image off from the backdrop it needs to blend with. */
-  mix-blend-mode: darken;
+  /* No blend mode and no plate: the logo files carry their own transparency,
+     so the mark sits on whatever is behind it. The cream-square workarounds
+     that used to live here went with the file that needed them. */
   width: 100%;
   height: 100%;
   object-fit: contain;
-}
-
-/* Ink backgrounds: give it its own cream plate to blend against. */
-.logo-plate--tile {
-  background: var(--cream);
-  isolation: isolate;
 }
 
 /* --------------------------------------------------- 8. MEDIA ------------ */

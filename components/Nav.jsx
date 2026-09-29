@@ -89,9 +89,13 @@ export default function Nav() {
               : window.scrollTo({ top: 0, behavior: "smooth" });
           }}
         >
-          {/* Always tiled: cream-on-cream is invisible over the hero and the
-              scrolled bar, and reads as a deliberate stamp on the ink menu. */}
-          <Logo size={scrolled ? 60 : 74} priority tile />
+          {/* The ink mark on the cream bar, the white one once the mobile
+              menu has covered the screen behind it. */}
+          <Logo
+            size={scrolled ? 60 : 74}
+            priority
+            variant={open ? "cream" : "ink"}
+          />
         </a>
 
         <nav className="nav__links" aria-label="Primary">

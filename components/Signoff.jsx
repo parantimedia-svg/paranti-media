@@ -53,7 +53,7 @@ export default function Signoff({ active, onDone }) {
       aria-hidden="true"
     >
       <div className="signoff__card">
-        <Logo size={104} className="signoff__logo" tile />
+        <Logo size={104} className="signoff__logo" variant="cream" />
         <p className="signoff__name">PARANTI MEDIA</p>
         <p className="signoff__tag mono">CREATE. CAPTURE. INSPIRE.</p>
       </div>

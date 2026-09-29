@@ -3,39 +3,44 @@
 import Image from "next/image";
 
 /* ==========================================================================
-   THE REAL LOGO — parantii.png, used exactly as supplied.
+   THE REAL LOGO — used exactly as supplied.
    --------------------------------------------------------------------------
-   Never redrawn, morphed, distorted, recoloured or regenerated. The only
-   treatment applied is a compositing one: the file ships with a warm-cream
-   background (#FEF1D7), which would otherwise show as a pale square.
+   Never redrawn, morphed, distorted, recoloured or regenerated. Two files, as
+   the brand supplies them, and the only choice made here is which one the
+   background calls for:
 
-   `mix-blend-mode: darken` takes the per-channel minimum against whatever is
-   behind, so on any cream backdrop the logo's own background resolves to the
-   backdrop exactly, while the ink figure and the orange "A"s — both darker
-   than cream in every channel — pass through untouched.
+     paranti-logo.png        ink figure, orange A's — for the cream bar
+     paranti-logo-light.png  the white mark          — for ink: the footer,
+                             the open mobile menu, the sign-off card
 
-   On ink backgrounds (the footer, the open mobile menu) darken would swallow
-   the mark, so `tile` puts it on a brand-cream plate first and it reads as a
-   deliberate stamp. Either way the image file itself is untouched.
+   Both have a real transparent background, so there is no compositing trick
+   left in the page. The previous file carried a baked-in cream square, which
+   had to be hidden with `mix-blend-mode: darken` on cream and covered with a
+   cream plate on ink; both of those are gone, and so is the 1.2MB that file
+   weighed — these are 140KB and 164KB.
    ========================================================================== */
+
+const FILES = {
+  ink: "/media/logo/paranti-logo.png",
+  cream: "/media/logo/paranti-logo-light.png",
+};
 
 export default function Logo({
   size = 72,
   className = "",
   priority = false,
-  tile = false,
+  /* Which mark to use: "ink" reads on a light background, "cream" on a dark
+     one. Named for the artwork, not the backdrop, so the call site says what
+     it wants to see rather than what it is sitting on. */
+  variant = "ink",
 }) {
   return (
-    <span
-      className={`logo-plate ${tile ? "logo-plate--tile" : ""} ${className}`}
-      style={{ width: size, height: size }}
-    >
+    <span className={`logo-plate ${className}`} style={{ width: size, height: size }}>
       {/* Always requested at one fixed resolution and scaled down by CSS, so
           shrinking the nav on scroll costs no extra network request and the
-          preload always matches what the browser actually uses. One cached
-          file serves the nav, the footer and the mobile menu. */}
+          preload always matches what the browser actually uses. */}
       <Image
-        src="/parantii.png"
+        src={FILES[variant] || FILES.ink}
         alt="PARANTI MEDIA"
         width={200}
         height={200}

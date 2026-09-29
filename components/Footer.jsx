@@ -62,7 +62,7 @@ export default function Footer() {
         <div className="footer__top">
           <div className="footer__brand">
             {/* The real logo again — same untouched file as the nav. */}
-            <Logo size={92} className="footer__logo" tile />
+            <Logo size={92} className="footer__logo" variant="cream" />
             <div>
               <p className="footer__name">PARANTI MEDIA</p>
               <p className="footer__tag mono accent">{SITE.tagline}</p>
