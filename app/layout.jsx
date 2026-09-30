@@ -83,6 +83,11 @@ export const metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: { canonical: "/" },
+  /* Google Search Console ownership. Next renders this as
+     <meta name="google-site-verification"> into every page's head. */
+  verification: {
+    google: "1J1vH_WbeC6OLdajmYK-gWO2XWBPux0lXkanXGs40KM",
+  },
 };
 
 export const viewport = {
