@@ -955,3 +955,140 @@ html[data-descent="inside"] .atmos__light--warm {
 .no-js .line-mask > span {
   transform: none;
 }
+
+/* --------------------------------------------------- LAVA EDGE ----------- */
+/*  A molten thread that creeps around the window as you scroll: it starts at
+    the top-left corner, runs the top edge, turns down the right, and closes
+    along the bottom, arriving at the far corner as the page ends. The left
+    edge is not its business — the monopod rail lives there.
+
+    Three bars, not one traced outline. A bar is revealed by scaling it, and
+    scaling is something the compositor does on its own; tracing an outline
+    means animating stroke-dashoffset, which is main-thread work on every
+    frame — the exact cost this site has just spent a long time removing.
+
+    The scroll drives it directly (animation-timeline: scroll()), so the
+    thread is always at the position the scrollbar is at, and cannot drift
+    when the page is busy. Each side owns a third of the page:
+
+      0% – 33%    the top edge, left to right
+      33% – 66%   the right edge, top to bottom
+      66% – 100%  the bottom edge, right to left
+
+    so the flow is continuous around the corners. The bright end of each
+    gradient is the leading tip: molten where it is arriving, cooling to a
+    dark ember behind it.
+
+    Desktop only, and only where the browser can drive it off the scroll.    */
+/*  Nothing at all unless the conditions below are met: no phone, no browser
+    that cannot drive it off the scroll, gets stray markup at the edges. */
+.lava {
+  display: none;
+}
+
+@media (min-width: 901px) and (hover: hover) {
+  @supports (animation-timeline: scroll()) {
+    .lava {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 120; /* over the nav, so the frame is unbroken at the corners */
+      pointer-events: none;
+    }
+
+    .lava__seg {
+      position: absolute;
+      /* Hairline: the mark is a detail at the edge of the eye, not a border. */
+      --lava-w: 2px;
+      display: block;
+      transform: scaleX(0);
+      animation-timeline: scroll(root block);
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-duration: 1ms; /* ignored on a scroll timeline */
+    }
+
+    /* The glow is a second, wider wash under the thread rather than a blur:
+       a blur filter would be re-computed every frame it moves. It is a child,
+       so it is carried by the same scale and needs no animation of its own. */
+    .lava__seg::after {
+      content: "";
+      position: absolute;
+      inset: -5px -0px;
+      background: inherit;
+      opacity: 0.28;
+      filter: none;
+    }
+
+    .lava__seg--top {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: var(--lava-w);
+      transform-origin: left center;
+      background: linear-gradient(
+        90deg,
+        rgba(122, 31, 8, 0.5) 0%,
+        rgba(225, 84, 30, 0.9) 62%,
+        #ffb184 100%
+      );
+      animation-name: lavaX;
+      animation-range: 0% 33%;
+    }
+
+    .lava__seg--right {
+      top: 0;
+      right: 0;
+      width: var(--lava-w);
+      height: 100%;
+      transform: scaleY(0);
+      transform-origin: center top;
+      background: linear-gradient(
+        180deg,
+        rgba(122, 31, 8, 0.5) 0%,
+        rgba(225, 84, 30, 0.9) 62%,
+        #ffb184 100%
+      );
+      animation-name: lavaY;
+      animation-range: 33% 66%;
+    }
+    .lava__seg--right::after {
+      inset: 0 -5px;
+    }
+
+    /* Right to left, so the thread keeps travelling the same way round. */
+    .lava__seg--bottom {
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: var(--lava-w);
+      transform-origin: right center;
+      background: linear-gradient(
+        270deg,
+        rgba(122, 31, 8, 0.5) 0%,
+        rgba(225, 84, 30, 0.9) 62%,
+        #ffb184 100%
+      );
+      animation-name: lavaX;
+      animation-range: 66% 100%;
+    }
+
+    @keyframes lavaX {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+    @keyframes lavaY {
+      from { transform: scaleY(0); }
+      to { transform: scaleY(1); }
+    }
+
+    /* Nothing creeps for anyone who has asked motion to stop: the frame is
+       simply there, complete and still. */
+    @media (prefers-reduced-motion: reduce) {
+      .lava__seg {
+        animation: none;
+        transform: none;
+      }
+    }
+  }
+}

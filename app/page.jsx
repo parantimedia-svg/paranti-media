@@ -46,6 +46,14 @@ export default function Page() {
           the travelling Paranti Light and lens effects over it. */}
       <Atmosphere />
       <div className="grain" aria-hidden="true" />
+      {/* The molten edge: three sides of the window, drawn by the scroll
+          itself. No JavaScript — see "LAVA EDGE" in globals.css. The left
+          edge is left to the monopod rail. */}
+      <div className="lava" aria-hidden="true">
+        <span className="lava__seg lava__seg--top" />
+        <span className="lava__seg lava__seg--right" />
+        <span className="lava__seg lava__seg--bottom" />
+      </div>
       {/* Renders nothing until the hero's viewfinder is pressed. */}
       <DirectorMode />
 
