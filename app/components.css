@@ -1341,12 +1341,34 @@
   opacity: 0.45;
 }
 
-/* Stacked on phones: centred beneath the heading, a little narrower so the
-   whole frame and its play control sit inside one screen. */
+/* On a phone the frame stands beside its caption rather than over it. Centred
+   and 280px wide it was around 500px tall on a 390px screen — one upright card
+   filling the view and pushing everything written below the fold. Half that
+   width is still unmistakably a 9:16 frame, the caption takes the space left
+   beside it, and the section's opening line now arrives on the same screen.
+   The film itself is untouched: same still, same crop, same lightbox. */
 @media (max-width: 900px) {
   .about__media--film {
-    width: min(100%, 280px);
-    margin-inline: auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 150px) 1fr;
+    gap: clamp(14px, 4vw, 20px);
+    align-items: end;
+  }
+
+  /* Beside the frame, and set on its own lines — the two halves of the caption
+     have far less room across now. */
+  .about__filmmeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 0 6px;
+  }
+
+  /* The play control keeps its proportion against the smaller frame. */
+  .about__filmplay {
+    width: 52px;
+    height: 52px;
   }
 }
 
